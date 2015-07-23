@@ -113,7 +113,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>org.slf4j,org.mapdb.*,io.netty.*,org.apache.commons.codec.*,org.json.*,com.whizzosoftware.hobson.api.*;version="[0.5.0,0.6)"</Import-Package>
-                        <Embed-Dependency>moquette-broker;scope=compile|runtime,moquette-parser-commons;scope=compile|runtime,moquette-netty-parser;scope=compile|runtime,disruptor;scope=compile|runtime,HdrHistogram;scope=compile|runtime,org.eclipse.paho.client.mqttv3;scope=compile|runtime,hobson-ipsoso-api;scope=compile|runtime</Embed-Dependency>
+                        <Embed-Dependency>moquette-broker;scope=compile|runtime,moquette-parser-commons;scope=compile|runtime,moquette-netty-parser;scope=compile|runtime,disruptor;scope=compile|runtime,HdrHistogram;scope=compile|runtime,org.eclipse.paho.client.mqttv3;scope=compile|runtime,smartobjects-api;scope=compile|runtime</Embed-Dependency>
                         <Bundle-Activator>com.whizzosoftware.hobson.api.osgi.activator.HobsonBundleActivator</Bundle-Activator>
                         <Provide-Capability>hobson.plugin=com.whizzosoftware.hobson.mqtt.MQTTPlugin</Provide-Capability>
                         <Bundle-Category>hobson-plugin</Bundle-Category>

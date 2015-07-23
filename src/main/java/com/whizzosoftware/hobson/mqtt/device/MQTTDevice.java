@@ -24,6 +24,7 @@ import java.util.List;
 public class MQTTDevice extends AbstractHobsonDevice {
     private DeviceType type;
     private Collection<SmartObject> initialData;
+    private String[] telemetryVariableNames;
 
     /**
      * Constructor.
@@ -38,6 +39,18 @@ public class MQTTDevice extends AbstractHobsonDevice {
 
         this.type = type;
         this.initialData = initialData;
+
+        // build a list of variables to include in telemetry data
+        List<String> list = new ArrayList<>();
+        for (SmartObject so : initialData) {
+            String vname = SmartObjectConverter.getVariableNameForSmartObject(so);
+            if (vname != null) {
+                list.add(vname);
+            }
+        }
+        if (list.size() > 0) {
+            telemetryVariableNames = list.toArray(new String[list.size()]);
+        }
     }
 
     @Override
@@ -62,8 +75,12 @@ public class MQTTDevice extends AbstractHobsonDevice {
     }
 
     @Override
-    public void onShutdown() {
+    public String[] getTelemetryVariableNames() {
+        return telemetryVariableNames;
+    }
 
+    @Override
+    public void onShutdown() {
     }
 
     @Override
