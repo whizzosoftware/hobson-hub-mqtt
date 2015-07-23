@@ -12,16 +12,10 @@ import com.whizzosoftware.hobson.api.device.DeviceType;
 import com.whizzosoftware.hobson.api.plugin.HobsonPlugin;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.variable.HobsonVariable;
-import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
+import com.whizzosoftware.hobson.mqtt.util.SmartObjectConverter;
 import com.whizzosoftware.smartobjects.SmartObject;
-import com.whizzosoftware.smartobjects.impl.DigitalOutput;
-import com.whizzosoftware.smartobjects.impl.Humidity;
-import com.whizzosoftware.smartobjects.impl.Illuminance;
-import com.whizzosoftware.smartobjects.impl.Temperature;
 import com.whizzosoftware.smartobjects.resource.Resource;
-import com.whizzosoftware.smartobjects.resource.ResourceConstants;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,10 +43,10 @@ public class MQTTDevice extends AbstractHobsonDevice {
     @Override
     public void onStartup(PropertyContainer config) {
         for (SmartObject so : initialData) {
-            String varName = getVariableNameForSmartObject(so);
-            Resource res = getPrimaryValueForSmartObject(so);
+            String varName = SmartObjectConverter.getVariableNameForSmartObject(so);
+            Resource res = SmartObjectConverter.getPrimaryValueForSmartObject(so);
             if (varName != null && res != null) {
-                publishVariable(varName, res.getValue(), getMaskForResource(res));
+                publishVariable(varName, res.getValue(), SmartObjectConverter.getMaskForResource(res));
             }
         }
     }
@@ -80,8 +74,8 @@ public class MQTTDevice extends AbstractHobsonDevice {
         List<VariableUpdate> updates = new ArrayList<>();
 
         for (SmartObject so : data) {
-            String name = getVariableNameForSmartObject(so);
-            Resource r = getPrimaryValueForSmartObject(so);
+            String name = SmartObjectConverter.getVariableNameForSmartObject(so);
+            Resource r = SmartObjectConverter.getPrimaryValueForSmartObject(so);
             if (name != null && r != null) {
                 updates.add(new VariableUpdate(getContext(), name, r.getValue()));
             }
@@ -89,55 +83,6 @@ public class MQTTDevice extends AbstractHobsonDevice {
 
         if (updates.size() > 0) {
             fireVariableUpdateNotifications(updates);
-        }
-    }
-
-    protected String getVariableNameForSmartObject(SmartObject so) {
-        switch (so.getId()) {
-            case DigitalOutput.ID:
-                return VariableConstants.ON;
-            case Temperature.ID: {
-                String vc = VariableConstants.TEMP_F;
-                Resource ur = so.getResource(ResourceConstants.Units, 0);
-                if (ur != null) {
-                    vc = "cel".equalsIgnoreCase(ur.getValue().toString()) ? VariableConstants.TEMP_C : VariableConstants.TEMP_F;
-                }
-                return vc;
-            }
-            case Humidity.ID:
-                return VariableConstants.HUMIDITY_PERCENT;
-            case Illuminance.ID:
-                return VariableConstants.LX_LUX;
-            default:
-                return null;
-        }
-    }
-
-    protected Resource getPrimaryValueForSmartObject(SmartObject so) {
-        switch (so.getId()) {
-            case DigitalOutput.ID:
-                return so.getResource(ResourceConstants.DigitalOutputState, 0);
-            case Temperature.ID:
-                return so.getResource(ResourceConstants.SensorValue, 0);
-            case Humidity.ID:
-                return so.getResource(ResourceConstants.SensorValue, 0);
-            case Illuminance.ID:
-                return so.getResource(ResourceConstants.SensorValue, 0);
-            default:
-                return null;
-        }
-    }
-
-    protected HobsonVariable.Mask getMaskForResource(Resource r) {
-        switch (r.getResourceClass().getAccessType()) {
-            case ReadOnly:
-                return HobsonVariable.Mask.READ_ONLY;
-            case ReadWrite:
-                return HobsonVariable.Mask.READ_WRITE;
-            case Event:
-                return HobsonVariable.Mask.WRITE_ONLY;
-            default:
-                return null;
         }
     }
 }
