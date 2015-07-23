@@ -15,7 +15,7 @@ import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.mqtt.device.MQTTDevice;
-import com.whizzosoftware.smartobjects.object.SmartObject;
+import com.whizzosoftware.smartobjects.SmartObject;
 import org.eclipse.moquette.server.Server;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;

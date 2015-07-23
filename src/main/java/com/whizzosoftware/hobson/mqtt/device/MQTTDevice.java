@@ -15,11 +15,11 @@ import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.HobsonVariable;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
-import com.whizzosoftware.smartobjects.object.SmartObject;
-import com.whizzosoftware.smartobjects.object.impl.DigitalOutput;
-import com.whizzosoftware.smartobjects.object.impl.Humidity;
-import com.whizzosoftware.smartobjects.object.impl.Illuminance;
-import com.whizzosoftware.smartobjects.object.impl.Temperature;
+import com.whizzosoftware.smartobjects.SmartObject;
+import com.whizzosoftware.smartobjects.impl.DigitalOutput;
+import com.whizzosoftware.smartobjects.impl.Humidity;
+import com.whizzosoftware.smartobjects.impl.Illuminance;
+import com.whizzosoftware.smartobjects.impl.Temperature;
 import com.whizzosoftware.smartobjects.resource.Resource;
 import com.whizzosoftware.smartobjects.resource.ResourceConstants;
 
