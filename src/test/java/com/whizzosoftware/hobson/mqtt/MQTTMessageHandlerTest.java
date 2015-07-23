@@ -1,6 +1,6 @@
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.ipsoso.object.SmartObject;
+import com.whizzosoftware.smartobjects.object.SmartObject;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.junit.Test;

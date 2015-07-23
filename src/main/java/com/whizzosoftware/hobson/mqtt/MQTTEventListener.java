@@ -7,7 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.ipsoso.object.SmartObject;
+import com.whizzosoftware.smartobjects.object.SmartObject;
 
 import java.util.Collection;
 

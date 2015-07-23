@@ -7,7 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.ipsoso.json.JSONParser;
+import com.whizzosoftware.smartobjects.json.JSONParser;
 import org.json.JSONObject;
 
 import java.util.regex.Pattern;

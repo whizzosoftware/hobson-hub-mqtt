@@ -15,14 +15,13 @@ import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.HobsonVariable;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
-import com.whizzosoftware.hobson.ipsoso.object.SmartObject;
-import com.whizzosoftware.hobson.ipsoso.object.impl.DigitalOutput;
-import com.whizzosoftware.hobson.ipsoso.object.impl.Humidity;
-import com.whizzosoftware.hobson.ipsoso.object.impl.Illuminance;
-import com.whizzosoftware.hobson.ipsoso.object.impl.Temperature;
-import com.whizzosoftware.hobson.ipsoso.resource.Resource;
-import com.whizzosoftware.hobson.ipsoso.resource.impl.DigitalOutputState;
-import com.whizzosoftware.hobson.ipsoso.resource.impl.SensorValue;
+import com.whizzosoftware.smartobjects.object.SmartObject;
+import com.whizzosoftware.smartobjects.object.impl.DigitalOutput;
+import com.whizzosoftware.smartobjects.object.impl.Humidity;
+import com.whizzosoftware.smartobjects.object.impl.Illuminance;
+import com.whizzosoftware.smartobjects.object.impl.Temperature;
+import com.whizzosoftware.smartobjects.resource.Resource;
+import com.whizzosoftware.smartobjects.resource.ResourceConstants;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -97,8 +96,14 @@ public class MQTTDevice extends AbstractHobsonDevice {
         switch (so.getId()) {
             case DigitalOutput.ID:
                 return VariableConstants.ON;
-            case Temperature.ID:
-                return VariableConstants.TARGET_TEMP_F;
+            case Temperature.ID: {
+                String vc = VariableConstants.TEMP_F;
+                Resource ur = so.getResource(ResourceConstants.Units, 0);
+                if (ur != null) {
+                    vc = "cel".equalsIgnoreCase(ur.getValue().toString()) ? VariableConstants.TEMP_C : VariableConstants.TEMP_F;
+                }
+                return vc;
+            }
             case Humidity.ID:
                 return VariableConstants.HUMIDITY_PERCENT;
             case Illuminance.ID:
@@ -111,13 +116,13 @@ public class MQTTDevice extends AbstractHobsonDevice {
     protected Resource getPrimaryValueForSmartObject(SmartObject so) {
         switch (so.getId()) {
             case DigitalOutput.ID:
-                return so.getResource(DigitalOutputState.ID, 0);
+                return so.getResource(ResourceConstants.DigitalOutputState, 0);
             case Temperature.ID:
-                return so.getResource(SensorValue.ID, 0);
+                return so.getResource(ResourceConstants.SensorValue, 0);
             case Humidity.ID:
-                return so.getResource(SensorValue.ID, 0);
+                return so.getResource(ResourceConstants.SensorValue, 0);
             case Illuminance.ID:
-                return so.getResource(SensorValue.ID, 0);
+                return so.getResource(ResourceConstants.SensorValue, 0);
             default:
                 return null;
         }
@@ -129,7 +134,7 @@ public class MQTTDevice extends AbstractHobsonDevice {
                 return HobsonVariable.Mask.READ_ONLY;
             case ReadWrite:
                 return HobsonVariable.Mask.READ_WRITE;
-            case WriteOnly:
+            case Event:
                 return HobsonVariable.Mask.WRITE_ONLY;
             default:
                 return null;
