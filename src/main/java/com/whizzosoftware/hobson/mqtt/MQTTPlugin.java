@@ -64,7 +64,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         try {
             server = new Server();
             server.startServer();
-            logger.info("MQTT broker has started");
+            logger.debug("MQTT broker has started");
 
             connect();
 
@@ -105,7 +105,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onDeviceData(final String id, final Collection<SmartObject> objects) {
-        logger.info("Received data from device " + id + ": " + objects);
+        logger.debug("Received data from device " + id + ": " + objects);
 
         DeviceContext ctx = DeviceContext.create(getContext(), id);
 
@@ -129,12 +129,12 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
                 mqtt = new MqttAsyncClient(brokerUrl, "Hobson Hub", new MemoryPersistence());
                 mqtt.setCallback(this);
             }
-            logger.info("Attempting broker connection to {} with user {}", brokerUrl, connOpts.getUserName());
+            logger.debug("Attempting broker connection to {} with user {}", brokerUrl, connOpts.getUserName());
             isConnectPending = true;
             mqtt.connect(connOpts, "", new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken token) {
-                    logger.info("Broker connection successful");
+                    logger.debug("Broker connection successful");
                     isConnectPending = false;
                     connected = true;
 
@@ -142,7 +142,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
                         mqtt.subscribe("devices/#", 0, null, new IMqttActionListener() {
                             @Override
                             public void onSuccess(IMqttToken iMqttToken) {
-                                logger.info("Devices subscription successful");
+                                logger.debug("Devices subscription successful");
                             }
 
                             @Override
@@ -176,7 +176,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     @Override
     public void messageArrived(final String topic, final MqttMessage mqttMessage) throws Exception {
         try {
-            logger.info("Message arrived on topic " + topic + ": " + new String(mqttMessage.getPayload()));
+            logger.debug("Message arrived on topic " + topic + ": " + new String(mqttMessage.getPayload()));
 
             final JSONObject json = new JSONObject(new JSONTokener(new String(mqttMessage.getPayload())));
 
@@ -193,7 +193,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
-        logger.info("deliveryComplete: " + iMqttDeliveryToken);
+        logger.debug("deliveryComplete: " + iMqttDeliveryToken);
     }
 
     @Override

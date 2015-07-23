@@ -14,11 +14,12 @@ import com.whizzosoftware.smartobjects.impl.Illuminance;
 import com.whizzosoftware.smartobjects.impl.Temperature;
 import com.whizzosoftware.smartobjects.resource.ResourceConstants;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 public class SmartObjectConverterTest {
     @Test
-    public void testGetVariableNameForSmartObject() {
+    public void testGetVariableNameForSmartObject() throws Exception {
         // digital output
         assertEquals(VariableConstants.ON, SmartObjectConverter.getVariableNameForSmartObject(new DigitalOutput(0)));
 
@@ -27,7 +28,7 @@ public class SmartObjectConverterTest {
 
         // explicit fahrenheit
         Temperature t = new Temperature(0);
-        t.setResourceValue(ResourceConstants.Units, 0, "Far");
+        t.setResourceValue(ResourceConstants.Units, 0, "[degF]");
         assertEquals(VariableConstants.TEMP_F, SmartObjectConverter.getVariableNameForSmartObject(t));
 
         // celsius temperature

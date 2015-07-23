@@ -49,7 +49,7 @@ public class MQTTMessageHandlerTest {
         assertEquals(0, sink.getMessageCount());
         assertEquals(0, listener.getEventCount());
 
-        handler.onMessage("devices/3b2184be-2f2c-11e5-a151-feff819cdc9f/data", new JSONObject(new JSONTokener("{\"3303.0\":{\"5700.0\":\"72.5\",\"5701.0\":\"Far\"},\"3304.0\":{\"5700.0\":\"30.1\",\"5701.0\":\"%\"}}")));
+        handler.onMessage("devices/3b2184be-2f2c-11e5-a151-feff819cdc9f/data", new JSONObject(new JSONTokener("{\"3303.0\":{\"5700.0\":\"72.5\",\"5701.0\":\"[degF]\"},\"3304.0\":{\"5700.0\":\"30.1\",\"5701.0\":\"%\"}}")));
 
         assertEquals(1, listener.getEventCount());
 

@@ -8,7 +8,10 @@
 package com.whizzosoftware.hobson.mqtt;
 
 import com.whizzosoftware.smartobjects.json.JSONHelper;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.regex.Pattern;
 
@@ -19,6 +22,8 @@ import java.util.regex.Pattern;
  * @author Dan Noguerol
  */
 public class MQTTMessageHandler {
+    private static final Logger logger = LoggerFactory.getLogger(MQTTMessageHandler.class);
+
     private MQTTMessageSink sink;
     private MQTTEventListener listener;
     private Pattern deviceDataTopicPattern = Pattern.compile("^devices/.*/data$");
@@ -59,9 +64,13 @@ public class MQTTMessageHandler {
             // send response message
             sink.sendMessage("devices/" + id + "/registrations", res);
         } else if (deviceDataTopicPattern.matcher(topic).matches()) {
-            // alert listener of received data
-            int ix = topic.indexOf('/') + 1;
-            listener.onDeviceData(topic.substring(ix, topic.indexOf('/', ix)), smartObjectHelper.createObjectCollection(json));
+            try {
+                // alert listener of received data
+                int ix = topic.indexOf('/') + 1;
+                listener.onDeviceData(topic.substring(ix, topic.indexOf('/', ix)), smartObjectHelper.createObjectCollection(json));
+            } catch (JSONException e) {
+                logger.error("Error parsing device data JSON", e);
+            }
         }
     }
 }

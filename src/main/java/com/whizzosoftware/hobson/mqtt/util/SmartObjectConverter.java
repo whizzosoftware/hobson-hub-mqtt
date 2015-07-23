@@ -10,6 +10,7 @@ package com.whizzosoftware.hobson.mqtt.util;
 import com.whizzosoftware.hobson.api.variable.HobsonVariable;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.smartobjects.SmartObject;
+import com.whizzosoftware.smartobjects.UCUMCode;
 import com.whizzosoftware.smartobjects.impl.DigitalOutput;
 import com.whizzosoftware.smartobjects.impl.Humidity;
 import com.whizzosoftware.smartobjects.impl.Illuminance;
@@ -37,7 +38,7 @@ public class SmartObjectConverter {
                 String vc = VariableConstants.TEMP_F;
                 Resource ur = so.getResource(ResourceConstants.Units, 0);
                 if (ur != null) {
-                    vc = "cel".equalsIgnoreCase(ur.getValue().toString()) ? VariableConstants.TEMP_C : VariableConstants.TEMP_F;
+                    vc = UCUMCode.DegreeCelsius.equals(ur.getValue()) ? VariableConstants.TEMP_C : VariableConstants.TEMP_F;
                 }
                 return vc;
             }
