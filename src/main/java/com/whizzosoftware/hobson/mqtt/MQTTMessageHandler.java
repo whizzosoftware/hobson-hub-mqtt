@@ -7,7 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.smartobjects.json.JSONParser;
+import com.whizzosoftware.smartobjects.json.JSONHelper;
 import org.json.JSONObject;
 
 import java.util.regex.Pattern;
@@ -22,7 +22,7 @@ public class MQTTMessageHandler {
     private MQTTMessageSink sink;
     private MQTTEventListener listener;
     private Pattern deviceDataTopicPattern = Pattern.compile("^devices/.*/data$");
-    private JSONParser smartObjectParser = new JSONParser();
+    private JSONHelper smartObjectHelper = new JSONHelper();
 
     /**
      * Constructor.
@@ -46,7 +46,7 @@ public class MQTTMessageHandler {
             String id = json.getString("id");
 
             // alert listener of the device registration
-            listener.onDeviceRegistration(id, json.getString("name"), smartObjectParser.parseObjectCollection(json.getJSONObject("data")));
+            listener.onDeviceRegistration(id, json.getString("name"), smartObjectHelper.createObjectCollection(json.getJSONObject("data")));
 
             // create JSON response message
             JSONObject res = new JSONObject();
@@ -61,7 +61,7 @@ public class MQTTMessageHandler {
         } else if (deviceDataTopicPattern.matcher(topic).matches()) {
             // alert listener of received data
             int ix = topic.indexOf('/') + 1;
-            listener.onDeviceData(topic.substring(ix, topic.indexOf('/', ix)), smartObjectParser.parseObjectCollection(json));
+            listener.onDeviceData(topic.substring(ix, topic.indexOf('/', ix)), smartObjectHelper.createObjectCollection(json));
         }
     }
 }
