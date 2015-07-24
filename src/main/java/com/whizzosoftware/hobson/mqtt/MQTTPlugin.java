@@ -66,6 +66,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             server.startServer();
             logger.debug("MQTT broker has started");
 
+            // perform client connection to embedded broker
             connect();
 
             setStatus(PluginStatus.running());
@@ -95,6 +96,11 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     }
 
     @Override
+    public long getRefreshInterval() {
+        return 5; // the client connection watchdog will run every 5 seconds
+    }
+
+    @Override
     public void onPluginConfigurationUpdate(PropertyContainer config) {
     }
 
@@ -121,9 +127,17 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         }
     }
 
+    @Override
+    public void onRefresh() {
+        // if there's no connection and no pending one, attempt a new one
+        if (!connected && !isConnectPending) {
+            connect();
+        }
+    }
+
     protected void connect() {
         try {
-            String brokerUrl = "tcp://localhost:1883";
+            final String brokerUrl = "tcp://localhost:1883";
 
             if (mqtt == null) {
                 mqtt = new MqttAsyncClient(brokerUrl, "Hobson Hub", new MemoryPersistence());
@@ -134,7 +148,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             mqtt.connect(connOpts, "", new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken token) {
-                    logger.debug("Broker connection successful");
+                    logger.info("Connected to MQTT broker at " + brokerUrl);
                     isConnectPending = false;
                     connected = true;
 
@@ -148,10 +162,12 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
                             @Override
                             public void onFailure(IMqttToken iMqttToken, Throwable throwable) {
                                 logger.error("Devices subscription failed", throwable);
+                                disconnect();
                             }
                         });
                     } catch (MqttException e) {
                         logger.error("Unable to subscribe to devices topic");
+                        disconnect();
                     }
                 }
 
@@ -164,6 +180,17 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         } catch (Throwable e) {
             logger.error("Broker connection failure", e);
             isConnectPending = false;
+        }
+    }
+
+    protected void disconnect() {
+        try {
+            mqtt.disconnect();
+        } catch (MqttException e) {
+            logger.error("Error disconnecting from broker", e);
+        } finally {
+            isConnectPending = false;
+            connected = false;
         }
     }
 
