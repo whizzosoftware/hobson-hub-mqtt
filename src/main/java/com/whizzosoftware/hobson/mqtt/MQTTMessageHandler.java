@@ -47,6 +47,8 @@ public class MQTTMessageHandler {
      * @param json the JSON payload of the message
      */
     public void onMessage(String topic, JSONObject json) {
+        logger.debug("Received MQTT message on topic {}: {}", topic, json);
+
         if ("devices/register".equals(topic)) {
             String id = json.getString("id");
 
@@ -62,7 +64,9 @@ public class MQTTMessageHandler {
             res.put("topics", topics);
 
             // send response message
-            sink.sendMessage("devices/" + id + "/registrations", res);
+            String responseTopic = "devices/" + id + "/registrations";
+            logger.debug("Registration message detected from {}; sending response on topic {}", id, responseTopic);
+            sink.sendMessage(responseTopic, res);
         } else if (deviceDataTopicPattern.matcher(topic).matches()) {
             try {
                 // alert listener of received data

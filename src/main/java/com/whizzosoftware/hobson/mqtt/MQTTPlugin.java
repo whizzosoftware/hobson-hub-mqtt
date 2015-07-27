@@ -36,8 +36,12 @@ import java.util.Collection;
 public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQTTMessageSink, MQTTEventListener {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final static String PROP_BROKER_URL = "brokerUrl";
+    private final static String DEFAULT_BROKER = "tcp://localhost:1883";
+
     private Server server;
     private final MqttConnectOptions connOpts;
+    private String brokerUrl;
     private MqttAsyncClient mqtt;
     private boolean isConnectPending;
     private boolean connected;
@@ -62,9 +66,13 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     @Override
     public void onStartup(PropertyContainer config) {
         try {
+            // start the embedded broker
             server = new Server();
             server.startServer();
             logger.debug("MQTT broker has started");
+
+            // get the client broker URL
+            brokerUrl = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_BROKER);
 
             // perform client connection to embedded broker
             connect();
@@ -87,7 +95,9 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     protected TypedProperty[] createSupportedProperties() {
-        return null;
+        return new TypedProperty[] {
+            new TypedProperty(PROP_BROKER_URL, "Broker URL", "The MQTT broker to connect to (defaults to tcp://localhost:1883).", TypedProperty.Type.STRING)
+        };
     }
 
     @Override
@@ -102,6 +112,12 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onPluginConfigurationUpdate(PropertyContainer config) {
+        String s = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_BROKER);
+        if (!s.equals(brokerUrl)) {
+            logger.debug("MQTT broker URL has changed");
+            brokerUrl = s;
+            disconnect();
+        }
     }
 
     @Override
@@ -137,8 +153,6 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     protected void connect() {
         try {
-            final String brokerUrl = "tcp://localhost:1883";
-
             if (mqtt == null) {
                 mqtt = new MqttAsyncClient(brokerUrl, "Hobson Hub", new MemoryPersistence());
                 mqtt.setCallback(this);
