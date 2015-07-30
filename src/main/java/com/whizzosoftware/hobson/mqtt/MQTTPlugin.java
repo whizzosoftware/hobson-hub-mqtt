@@ -122,7 +122,10 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onDeviceRegistration(String id, String name, Collection<SmartObject> initialData) {
-        publishDevice(new MQTTDevice(this, id, name, DeviceType.SENSOR, initialData));
+        DeviceContext ctx = DeviceContext.create(getContext(), id);
+        if (!hasDevice(ctx)) {
+            publishDevice(new MQTTDevice(this, id, name, DeviceType.SENSOR, initialData));
+        }
     }
 
     @Override
@@ -224,7 +227,11 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             executeInEventLoop(new Runnable() {
                 @Override
                 public void run() {
-                    handler.onMessage(topic, json);
+                    try {
+                        handler.onMessage(topic, json);
+                    } catch (Throwable t) {
+                        logger.error("Error processing MQTT message from topic " + topic + ": " + json, t);
+                    }
                 }
             });
         } catch (JSONException e) {
