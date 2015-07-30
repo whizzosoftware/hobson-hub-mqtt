@@ -22,11 +22,15 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
  * The MQTT plugin. This creates an embedded MQTT broker to proxy MQTT events as Hobson ones.
@@ -39,6 +43,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     private final static String PROP_BROKER_URL = "brokerUrl";
     private final static String DEFAULT_BROKER = "tcp://localhost:1883";
 
+    private DB db;
     private Server server;
     private final MqttConnectOptions connOpts;
     private String brokerUrl;
@@ -66,6 +71,12 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     @Override
     public void onStartup(PropertyContainer config) {
         try {
+            // create the internal device database
+            db = DBMaker.newFileDB(getDataFile("devices")).closeOnJvmShutdown().make();
+
+            // restore any previously known devices
+            restoreDevices();
+
             // start the embedded broker
             server = new Server();
             server.startServer();
@@ -87,6 +98,8 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     @Override
     public void onShutdown() {
         super.onShutdown();
+
+        db.close();
 
         if (server != null) {
             server.stopServer();
@@ -122,10 +135,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onDeviceRegistration(String id, String name, Collection<SmartObject> initialData) {
-        DeviceContext ctx = DeviceContext.create(getContext(), id);
-        if (!hasDevice(ctx)) {
-            publishDevice(new MQTTDevice(this, id, name, DeviceType.SENSOR, initialData));
-        }
+        registerDevice(id, name, initialData);
     }
 
     @Override
@@ -151,6 +161,26 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         // if there's no connection and no pending one, attempt a new one
         if (!connected && !isConnectPending) {
             connect();
+        }
+    }
+
+    protected void registerDevice(String id, String name, Collection<SmartObject> initialData) {
+        DeviceContext ctx = DeviceContext.create(getContext(), id);
+        if (!hasDevice(ctx)) {
+            MQTTDevice device = new MQTTDevice(this, id, name, DeviceType.SENSOR, initialData);
+            publishDevice(device);
+
+            ConcurrentNavigableMap<String,String> devices = db.getTreeMap("devices");
+            devices.put("id", device.toJSON().toString());
+            db.commit();
+        }
+    }
+
+    protected void restoreDevices() {
+        ConcurrentNavigableMap<String,String> devices = db.getTreeMap("devices");
+        for (String id : devices.keySet()) {
+            JSONObject json = new JSONObject(new JSONTokener(devices.get(id)));
+            publishDevice(new MQTTDevice(this, json));
         }
     }
 

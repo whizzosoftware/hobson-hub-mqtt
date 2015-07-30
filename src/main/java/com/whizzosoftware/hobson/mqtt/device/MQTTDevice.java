@@ -12,19 +12,19 @@ import com.whizzosoftware.hobson.api.device.DeviceType;
 import com.whizzosoftware.hobson.api.plugin.HobsonPlugin;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
+import com.whizzosoftware.hobson.api.variable.HobsonVariable;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.mqtt.util.SmartObjectConverter;
 import com.whizzosoftware.smartobjects.SmartObject;
 import com.whizzosoftware.smartobjects.resource.Resource;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class MQTTDevice extends AbstractHobsonDevice {
     private DeviceType type;
-    private Collection<SmartObject> initialData;
-    private String[] telemetryVariableNames;
+    private Map<String,MQTTDeviceVariable> variableMap = new HashMap<>();
 
     /**
      * Constructor.
@@ -38,35 +38,49 @@ public class MQTTDevice extends AbstractHobsonDevice {
         setDefaultName(name);
 
         this.type = type;
-        this.initialData = initialData;
 
-        // build a list of variables to include in telemetry data
-        List<String> list = new ArrayList<>();
         for (SmartObject so : initialData) {
-            String vname = SmartObjectConverter.getVariableNameForSmartObject(so);
-            if (vname != null) {
-                list.add(vname);
+            String soName = SmartObjectConverter.getVariableNameForSmartObject(so);
+            Resource res = SmartObjectConverter.getPrimaryValueForSmartObject(so);
+            if (soName != null && res != null) {
+                variableMap.put(soName, new MQTTDeviceVariable(soName, SmartObjectConverter.getMaskForResource(res), res.getValue()));
             }
         }
-        if (list.size() > 0) {
-            telemetryVariableNames = list.toArray(new String[list.size()]);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param plugin the HobsonPlugin that created this device
+     * @param json a JSON representation of the device
+     */
+    public MQTTDevice(HobsonPlugin plugin, JSONObject json) {
+        super(plugin, json.getString("id"));
+
+        setDefaultName(json.getString("name"));
+
+        this.type = DeviceType.valueOf(json.getString("type"));
+
+        JSONArray varArray = json.getJSONArray("vars");
+        for (int i=0; i < varArray.length(); i++) {
+            JSONObject varJson = varArray.getJSONObject(i);
+            String name = varJson.getString("name");
+            variableMap.put(name, new MQTTDeviceVariable(name, HobsonVariable.Mask.valueOf(varJson.getString("mask")), null));
         }
     }
 
     @Override
     public void onStartup(PropertyContainer config) {
-        for (SmartObject so : initialData) {
-            String varName = SmartObjectConverter.getVariableNameForSmartObject(so);
-            Resource res = SmartObjectConverter.getPrimaryValueForSmartObject(so);
-            if (varName != null && res != null) {
-                publishVariable(varName, res.getValue(), SmartObjectConverter.getMaskForResource(res));
+        if (variableMap != null) {
+            for (MQTTDeviceVariable var : variableMap.values()) {
+                publishVariable(var.name, var.initialValue, var.mask);
             }
         }
     }
 
     @Override
     protected TypedProperty[] createSupportedProperties() {
-        return new TypedProperty[0];
+        return null;
     }
 
     @Override
@@ -76,7 +90,7 @@ public class MQTTDevice extends AbstractHobsonDevice {
 
     @Override
     public String[] getTelemetryVariableNames() {
-        return telemetryVariableNames;
+        return variableMap.keySet().toArray(new String[variableMap.size()]);
     }
 
     @Override
@@ -100,6 +114,34 @@ public class MQTTDevice extends AbstractHobsonDevice {
 
         if (updates.size() > 0) {
             fireVariableUpdateNotifications(updates);
+        }
+    }
+
+    public JSONObject toJSON() {
+        JSONObject json = new JSONObject();
+        json.put("id", getContext().getDeviceId());
+        json.put("name", getDefaultName());
+        json.put("type", getType().toString());
+        JSONArray vars = new JSONArray();
+        for (MQTTDeviceVariable v : variableMap.values()) {
+            JSONObject vjson = new JSONObject();
+            vjson.put("name", v.name);
+            vjson.put("mask", v.mask.toString());
+            vars.put(vjson);
+        }
+        json.put("vars", vars);
+        return json;
+    }
+
+    private class MQTTDeviceVariable {
+        public String name;
+        public HobsonVariable.Mask mask;
+        public Object initialValue;
+
+        public MQTTDeviceVariable(String name, HobsonVariable.Mask mask, Object initialValue) {
+            this.name = name;
+            this.mask = mask;
+            this.initialValue = initialValue;
         }
     }
 }
