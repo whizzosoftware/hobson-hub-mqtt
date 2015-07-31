@@ -47,7 +47,7 @@ public class MQTTMessageHandler {
      * @param json the JSON payload of the message
      */
     public void onMessage(String topic, JSONObject json) {
-        logger.debug("Received MQTT message on topic {}: {}", topic, json);
+        logger.trace("Received MQTT message on topic {}: {}", topic, json);
 
         if ("devices/register".equals(topic)) {
             String id = json.getString("id");

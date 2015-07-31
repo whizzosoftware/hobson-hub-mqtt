@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
@@ -140,7 +139,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onDeviceData(final String id, final Collection<SmartObject> objects) {
-        logger.debug("Received data from device " + id + ": " + objects);
+        logger.trace("Received data from device " + id + ": " + objects);
 
         DeviceContext ctx = DeviceContext.create(getContext(), id);
 
@@ -250,7 +249,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     @Override
     public void messageArrived(final String topic, final MqttMessage mqttMessage) throws Exception {
         try {
-            logger.debug("Message arrived on topic " + topic + ": " + new String(mqttMessage.getPayload()));
+            logger.trace("Message arrived on topic " + topic + ": " + new String(mqttMessage.getPayload()));
 
             final JSONObject json = new JSONObject(new JSONTokener(new String(mqttMessage.getPayload())));
 
@@ -271,7 +270,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
-        logger.debug("deliveryComplete: " + iMqttDeliveryToken);
+        logger.trace("deliveryComplete: {}", iMqttDeliveryToken);
     }
 
     @Override
