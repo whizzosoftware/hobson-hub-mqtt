@@ -170,7 +170,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             publishDevice(device);
 
             ConcurrentNavigableMap<String,String> devices = db.getTreeMap("devices");
-            devices.put("id", device.toJSON().toString());
+            devices.put(id, device.toJSON().toString());
             db.commit();
         }
     }
