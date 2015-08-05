@@ -16,6 +16,7 @@ import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.mqtt.device.MQTTDevice;
 import com.whizzosoftware.smartobjects.SmartObject;
+import org.eclipse.moquette.commons.Constants;
 import org.eclipse.moquette.server.Server;
 import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
@@ -77,8 +79,11 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             restoreDevices();
 
             // start the embedded broker
+            Properties mqttConfig = new Properties();
+            mqttConfig.put(Constants.PERSISTENT_STORE_PROPERTY_NAME, getDataFile("moquette_store.mapdb").getAbsolutePath());
+
             server = new Server();
-            server.startServer();
+            server.startServer(mqttConfig);
             logger.debug("MQTT broker has started");
 
             // get the client broker URL
