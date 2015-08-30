@@ -24,20 +24,20 @@ public class SmartObjectConverterTest {
         assertEquals(VariableConstants.ON, SmartObjectConverter.getVariableNameForSmartObject(new DigitalOutput(0)));
 
         // default fahrenheit
-        assertEquals(VariableConstants.TEMP_F, SmartObjectConverter.getVariableNameForSmartObject(new Temperature(0)));
+        assertEquals(VariableConstants.INDOOR_TEMP_F, SmartObjectConverter.getVariableNameForSmartObject(new Temperature(0)));
 
         // explicit fahrenheit
         Temperature t = new Temperature(0);
         t.setResourceValue(ResourceConstants.Units, 0, "[degF]");
-        assertEquals(VariableConstants.TEMP_F, SmartObjectConverter.getVariableNameForSmartObject(t));
+        assertEquals(VariableConstants.INDOOR_TEMP_F, SmartObjectConverter.getVariableNameForSmartObject(t));
 
         // celsius temperature
         t = new Temperature(0);
         t.setResourceValue(ResourceConstants.Units, 0, "Cel");
-        assertEquals(VariableConstants.TEMP_C, SmartObjectConverter.getVariableNameForSmartObject(t));
+        assertEquals(VariableConstants.INDOOR_TEMP_C, SmartObjectConverter.getVariableNameForSmartObject(t));
 
         // humidity
-        assertEquals(VariableConstants.HUMIDITY_PERCENT, SmartObjectConverter.getVariableNameForSmartObject(new Humidity(0)));
+        assertEquals(VariableConstants.INDOOR_RELATIVE_HUMIDITY, SmartObjectConverter.getVariableNameForSmartObject(new Humidity(0)));
 
         // illuminance
         assertEquals(VariableConstants.LX_LUX, SmartObjectConverter.getVariableNameForSmartObject(new Illuminance(0)));

@@ -35,15 +35,15 @@ public class SmartObjectConverter {
             case DigitalOutput.ID:
                 return VariableConstants.ON;
             case Temperature.ID: {
-                String vc = VariableConstants.TEMP_F;
+                String vc = VariableConstants.INDOOR_TEMP_F;
                 Resource ur = so.getResource(ResourceConstants.Units, 0);
                 if (ur != null) {
-                    vc = UCUMCode.DegreeCelsius.equals(ur.getValue()) ? VariableConstants.TEMP_C : VariableConstants.TEMP_F;
+                    vc = UCUMCode.DegreeCelsius.equals(ur.getValue()) ? VariableConstants.INDOOR_TEMP_C : VariableConstants.INDOOR_TEMP_F;
                 }
                 return vc;
             }
             case Humidity.ID:
-                return VariableConstants.HUMIDITY_PERCENT;
+                return VariableConstants.INDOOR_RELATIVE_HUMIDITY;
             case Illuminance.ID:
                 return VariableConstants.LX_LUX;
             default:
