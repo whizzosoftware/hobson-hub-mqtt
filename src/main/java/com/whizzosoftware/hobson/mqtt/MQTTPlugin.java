@@ -101,7 +101,9 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onShutdown() {
-        db.close();
+        if (!db.isClosed()) {
+            db.close();
+        }
 
         if (server != null) {
             server.stopServer();
