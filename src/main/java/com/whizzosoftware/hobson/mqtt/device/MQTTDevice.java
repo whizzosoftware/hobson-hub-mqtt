@@ -39,11 +39,13 @@ public class MQTTDevice extends AbstractHobsonDevice {
 
         this.type = type;
 
-        for (SmartObject so : initialData) {
-            String soName = SmartObjectConverter.getVariableNameForSmartObject(so);
-            Resource res = SmartObjectConverter.getPrimaryValueForSmartObject(so);
-            if (soName != null && res != null) {
-                variableMap.put(soName, new MQTTDeviceVariable(soName, SmartObjectConverter.getMaskForResource(res), res.getValue()));
+        if (initialData != null) {
+            for (SmartObject so : initialData) {
+                String soName = SmartObjectConverter.getVariableNameForSmartObject(so);
+                Resource res = SmartObjectConverter.getPrimaryValueForSmartObject(so);
+                if (soName != null && res != null) {
+                    variableMap.put(soName, new MQTTDeviceVariable(soName, SmartObjectConverter.getMaskForResource(res), res.getValue()));
+                }
             }
         }
     }

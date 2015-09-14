@@ -28,6 +28,10 @@ public class MockMQTTMessageSink implements MQTTMessageSink {
         return messages.get(ix);
     }
 
+    public void clear() {
+        messages.clear();
+    }
+
     public class Message {
         public String topic;
         public JSONObject payload;

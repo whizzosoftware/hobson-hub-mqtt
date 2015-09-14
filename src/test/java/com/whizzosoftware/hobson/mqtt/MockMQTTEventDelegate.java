@@ -7,12 +7,14 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
+import com.whizzosoftware.hobson.api.device.DeviceBootstrap;
 import com.whizzosoftware.smartobjects.SmartObject;
 
 import java.util.*;
 
-public class MockMQTTEventListener implements MQTTEventListener {
+public class MockMQTTEventDelegate implements MQTTEventDelegate {
     private Map<String,String> registrations = new HashMap<>();
+    private Map<String,DeviceBootstrap> bootstrapToDeviceMap = new HashMap<>();
     private Map<String,Collection<SmartObject>> data = new HashMap<>();
 
     public int getEventCount() {
@@ -32,7 +34,20 @@ public class MockMQTTEventListener implements MQTTEventListener {
     }
 
     @Override
-    public void onDeviceRegistration(String id, String name, Collection<SmartObject> initialData) {
+    public DeviceBootstrap registerDeviceBootstrap(String deviceId) {
+        DeviceBootstrap db = new DeviceBootstrap(UUID.randomUUID().toString(), deviceId, System.currentTimeMillis());
+        db.setSecret(deviceId);
+        bootstrapToDeviceMap.put(db.getId(), db);
+        return db;
+    }
+
+    @Override
+    public DeviceBootstrap getDeviceBootstrap(String bootstrapId) {
+        return bootstrapToDeviceMap.get(bootstrapId);
+    }
+
+    @Override
+    public void onBootstrapRegistration(String id, String name, Collection<SmartObject> initialData) {
         registrations.put(id, name);
     }
 

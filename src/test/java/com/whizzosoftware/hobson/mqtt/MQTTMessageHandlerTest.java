@@ -20,20 +20,25 @@ public class MQTTMessageHandlerTest {
     @Test
     public void testRegisterMessage() {
         MockMQTTMessageSink sink = new MockMQTTMessageSink();
-        MockMQTTEventListener listener = new MockMQTTEventListener();
+        MockMQTTEventDelegate listener = new MockMQTTEventDelegate();
         MQTTMessageHandler handler = new MQTTMessageHandler(sink, listener);
 
         assertEquals(0, sink.getMessageCount());
         assertEquals(0, listener.getEventCount());
 
-        handler.onMessage("devices/register", new JSONObject(new JSONTokener("{\"id\":\"3b2184be-2f2c-11e5-a151-feff819cdc9f\",\"name\":\"Sensor 1\",\"data\":{\"3201.0\":{\"5550.0\":\"true\"}}}")));
+        JSONObject json = new JSONObject(new JSONTokener("{\"deviceId\":\"3b2184be-2f2c-11e5-a151-feff819cdc9f\",\"nonce\":\"foo\",\"name\":\"Sensor 1\",\"data\":{\"3201.0\":{\"5550.0\":\"true\"}}}"));
+        handler.onMessage("bootstrap", json);
 
         assertEquals(1, sink.getMessageCount());
-        assertEquals("devices/3b2184be-2f2c-11e5-a151-feff819cdc9f/registrations", sink.getMessage(0).topic);
+        assertEquals("bootstrap/3b2184be-2f2c-11e5-a151-feff819cdc9f/foo", sink.getMessage(0).topic);
         assertNotNull(sink.getMessage(0).payload);
-        assertEquals("30", sink.getMessage(0).payload.getString("interval"));
+        assertTrue(sink.getMessage(0).payload.getString("secret") != null);
         assertTrue(sink.getMessage(0).payload.has("topics"));
-        assertEquals("devices/3b2184be-2f2c-11e5-a151-feff819cdc9f/data", sink.getMessage(0).payload.getJSONObject("topics").getString("data"));
+
+        String dataTopic = sink.getMessage(0).payload.getJSONObject("topics").getString("data");
+        assertTrue(dataTopic.startsWith("device/") && dataTopic.endsWith("/data"));
+        String commandTopic = sink.getMessage(0).payload.getJSONObject("topics").getString("command");
+        assertTrue(commandTopic.startsWith("device/") && commandTopic.endsWith("/command"));
 
         assertEquals(1, listener.getEventCount());
         assertEquals("3b2184be-2f2c-11e5-a151-feff819cdc9f", listener.getDeviceRegistrationIds().iterator().next());
@@ -43,20 +48,33 @@ public class MQTTMessageHandlerTest {
     @Test
     public void testDataMessage() {
         MockMQTTMessageSink sink = new MockMQTTMessageSink();
-        MockMQTTEventListener listener = new MockMQTTEventListener();
+        MockMQTTEventDelegate listener = new MockMQTTEventDelegate();
         MQTTMessageHandler handler = new MQTTMessageHandler(sink, listener);
 
         assertEquals(0, sink.getMessageCount());
         assertEquals(0, listener.getEventCount());
 
-        handler.onMessage("devices/3b2184be-2f2c-11e5-a151-feff819cdc9f/data", new JSONObject(new JSONTokener("{\"3303.0\":{\"5700.0\":\"72.5\",\"5701.0\":\"[degF]\"},\"3304.0\":{\"5700.0\":\"30.1\",\"5701.0\":\"%\"}}")));
-
+        // send registration message
+        JSONObject json = new JSONObject(new JSONTokener("{\"deviceId\":\"sensor1\",\"nonce\":\"foo\",\"data\":{}}"));
+        handler.onMessage("bootstrap", json);
         assertEquals(1, listener.getEventCount());
 
-        assertNotNull(listener.getData("3b2184be-2f2c-11e5-a151-feff819cdc9f"));
-        assertEquals(2, listener.getData("3b2184be-2f2c-11e5-a151-feff819cdc9f").size());
+        // get the data topic from the registration response
+        json = sink.getMessage(0).payload;
+        String dataTopic = json.getJSONObject("topics").getString("data");
+        int ix = dataTopic.indexOf('/') + 1;
+        sink.clear();
 
-        Iterator<SmartObject> it = listener.getData("3b2184be-2f2c-11e5-a151-feff819cdc9f").iterator();
+        // send data message
+        json = new JSONObject(new JSONTokener("{\"3303.0\":{\"5700.0\":\"72.5\",\"5701.0\":\"[degF]\"},\"3304.0\":{\"5700.0\":\"30.1\",\"5701.0\":\"%\"}}"));
+        handler.onMessage(dataTopic, json);
+
+        assertEquals(2, listener.getEventCount());
+
+        assertNotNull(listener.getData("sensor1"));
+        assertEquals(2, listener.getData("sensor1").size());
+
+        Iterator<SmartObject> it = listener.getData("sensor1").iterator();
         SmartObject so1 = it.next();
         SmartObject so2 = it.next();
         assertTrue(so1.getId() == 3303 || so2.getId() == 3304);

@@ -7,9 +7,12 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
+import com.whizzosoftware.hobson.api.device.DeviceBootstrap;
 import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.device.DeviceType;
 import com.whizzosoftware.hobson.api.device.HobsonDevice;
+import com.whizzosoftware.hobson.api.disco.DeviceAdvertisement;
+import com.whizzosoftware.hobson.api.hub.HubContext;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
@@ -34,11 +37,11 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
- * The MQTT plugin. This creates an embedded MQTT broker to proxy MQTT events as Hobson ones.
+ * The MQTT plugin. This creates an embedded MQTT broker to proxy MQTT events to Hobson.
  *
  * @author Dan Noguerol
  */
-public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQTTMessageSink, MQTTEventListener {
+public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQTTMessageSink, MQTTEventDelegate {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final static String PROP_BROKER_URL = "brokerUrl";
@@ -86,6 +89,9 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             server.startServer(mqttConfig);
             logger.debug("MQTT broker has started");
 
+            // publish an SSDP device advertisement for the MQTT broker
+            getDiscoManager().publishDeviceAdvertisement(getContext().getHubContext(), new DeviceAdvertisement.Builder("urn:hobson:mqtt", "ssdp").uri("tcp://localhost:1889").build(), true);
+
             // get the client broker URL
             brokerUrl = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_BROKER);
 
@@ -101,12 +107,14 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onShutdown() {
-        if (!db.isClosed()) {
-            db.close();
-        }
+        disconnect();
 
         if (server != null) {
             server.stopServer();
+        }
+
+        if (!db.isClosed()) {
+            db.close();
         }
     }
 
@@ -138,7 +146,17 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     }
 
     @Override
-    public void onDeviceRegistration(String id, String name, Collection<SmartObject> initialData) {
+    public DeviceBootstrap registerDeviceBootstrap(String deviceId) {
+        return getDeviceManager().registerDeviceBootstrap(HubContext.createLocal(), deviceId);
+    }
+
+    @Override
+    public DeviceBootstrap getDeviceBootstrap(String bootstrapId) {
+        return getDeviceManager().getDeviceBootstrap(getContext().getHubContext(), bootstrapId);
+    }
+
+    @Override
+    public void onBootstrapRegistration(String id, String name, Collection<SmartObject> initialData) {
         registerDevice(id, name, initialData);
     }
 
@@ -204,10 +222,22 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
                     connected = true;
 
                     try {
-                        mqtt.subscribe("devices/#", 0, null, new IMqttActionListener() {
+                        mqtt.subscribe("bootstrap/#", 0, null, new IMqttActionListener() {
                             @Override
                             public void onSuccess(IMqttToken iMqttToken) {
-                                logger.debug("Devices subscription successful");
+                                logger.debug("Bootstrap subscription successful");
+                            }
+
+                            @Override
+                            public void onFailure(IMqttToken iMqttToken, Throwable throwable) {
+                                logger.error("Bootstrap subscription failed");
+                                disconnect();
+                            }
+                        });
+                        mqtt.subscribe("device/#", 0, null, new IMqttActionListener() {
+                            @Override
+                            public void onSuccess(IMqttToken iMqttToken) {
+                                logger.debug("Device subscription successful");
                             }
 
                             @Override
