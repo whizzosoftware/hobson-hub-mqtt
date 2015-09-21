@@ -14,9 +14,6 @@ import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.HobsonVariable;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
-import com.whizzosoftware.hobson.mqtt.util.SmartObjectConverter;
-import com.whizzosoftware.smartobjects.SmartObject;
-import com.whizzosoftware.smartobjects.resource.Resource;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -32,7 +29,7 @@ public class MQTTDevice extends AbstractHobsonDevice {
      * @param plugin the HobsonPlugin that created this device
      * @param id     the device ID
      */
-    public MQTTDevice(HobsonPlugin plugin, String id, String name, DeviceType type, Collection<SmartObject> initialData) {
+    public MQTTDevice(HobsonPlugin plugin, String id, String name, DeviceType type, Collection<VariableUpdate> initialData) {
         super(plugin, id);
 
         setDefaultName(name);
@@ -40,12 +37,8 @@ public class MQTTDevice extends AbstractHobsonDevice {
         this.type = type;
 
         if (initialData != null) {
-            for (SmartObject so : initialData) {
-                String soName = SmartObjectConverter.getVariableNameForSmartObject(so);
-                Resource res = SmartObjectConverter.getPrimaryValueForSmartObject(so);
-                if (soName != null && res != null) {
-                    variableMap.put(soName, new MQTTDeviceVariable(soName, SmartObjectConverter.getMaskForResource(res), res.getValue()));
-                }
+            for (VariableUpdate vu : initialData) {
+                variableMap.put(vu.getName(), new MQTTDeviceVariable(vu.getName(), HobsonVariable.Mask.READ_ONLY, vu.getValue()));
             }
         }
     }
@@ -103,19 +96,9 @@ public class MQTTDevice extends AbstractHobsonDevice {
     public void onSetVariable(String variableName, Object value) {
     }
 
-    public void onDeviceData(Collection<SmartObject> data) {
-        List<VariableUpdate> updates = new ArrayList<>();
-
-        for (SmartObject so : data) {
-            String name = SmartObjectConverter.getVariableNameForSmartObject(so);
-            Resource r = SmartObjectConverter.getPrimaryValueForSmartObject(so);
-            if (name != null && r != null) {
-                updates.add(new VariableUpdate(getContext(), name, r.getValue()));
-            }
-        }
-
-        if (updates.size() > 0) {
-            fireVariableUpdateNotifications(updates);
+    public void onDeviceData(Collection<VariableUpdate> data) {
+        if (data.size() > 0) {
+            fireVariableUpdateNotifications(new ArrayList<>(data));
         }
     }
 

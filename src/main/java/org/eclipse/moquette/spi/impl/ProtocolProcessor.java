@@ -244,6 +244,7 @@ class ProtocolProcessor implements EventHandler<ValueEvent> {
             //force the republish of stored QoS1 and QoS2
             republishStoredInSession(msg.getClientID());
         }
+        m_clientIDs.get(msg.getClientID()).setCreated(System.currentTimeMillis());
     }
 
     private void failedCredentials(ServerChannel session) {
@@ -289,7 +290,7 @@ class ProtocolProcessor implements EventHandler<ValueEvent> {
         //remove also the messages stored of type QoS1/2
         m_messagesStore.dropMessagesInSession(clientID);
     }
-    
+
     @MQTTMessage(message = PublishMessage.class)
     void processPublish(ServerChannel session, PublishMessage msg) {
         LOG.trace("PUB --PUBLISH--> SRV executePublish invoked with {}", msg);
@@ -561,18 +562,22 @@ class ProtocolProcessor implements EventHandler<ValueEvent> {
     
     void processConnectionLost(LostConnectionEvent evt) {
         String clientID = evt.clientID;
-        //If already removed a disconnect message was already processed for this clientID
-        if (m_clientIDs.remove(clientID) != null) {
+        if (clientID != null && (m_clientIDs.get(clientID) == null || m_clientIDs.get(clientID).getCreated() < evt.created)) {
+            //If already removed a disconnect message was already processed for this clientID
+            if (m_clientIDs.remove(clientID) != null) {
 
-            //de-activate the subscriptions for this ClientID
-            subscriptions.deactivate(clientID);
-            LOG.info("Lost connection with client <{}>", clientID);
-        }
-        //publish the Will message (if any) for the clientID
-        if (m_willStore.containsKey(clientID)) {
-            WillMessage will = m_willStore.get(clientID);
-            forwardPublishWill(will, clientID);
-            m_willStore.remove(clientID);
+                //de-activate the subscriptions for this ClientID
+                subscriptions.deactivate(clientID);
+                LOG.info("Lost connection with client <{}>", clientID);
+            }
+            //publish the Will message (if any) for the clientID
+            if (m_willStore.containsKey(clientID)) {
+                WillMessage will = m_willStore.get(clientID);
+                forwardPublishWill(will, clientID);
+                m_willStore.remove(clientID);
+            }
+        } else {
+            LOG.debug("Ignoring lost connection event for newly created connection");
         }
     }
     

@@ -239,8 +239,10 @@ public class MapDBPersistentStore implements IMessagesStore, ISessionsStore {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            m_persistentMessageStore.remove(clientID);
-            m_db.commit();
+            if (!m_db.isClosed()) {
+                m_persistentMessageStore.remove(clientID);
+                m_db.commit();
+            }
 
         } finally {
             Thread.currentThread().setContextClassLoader(old);
@@ -383,8 +385,10 @@ public class MapDBPersistentStore implements IMessagesStore, ISessionsStore {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            m_persistentSubscriptions.remove(clientID);
-            m_db.commit();
+            if (!m_db.isClosed()) {
+                m_persistentSubscriptions.remove(clientID);
+                m_db.commit();
+            }
 
         } finally {
             Thread.currentThread().setContextClassLoader(old);
@@ -397,8 +401,10 @@ public class MapDBPersistentStore implements IMessagesStore, ISessionsStore {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            m_persistentSubscriptions.put(clientID, subscriptions);
-            m_db.commit();
+            if (!m_db.isClosed()) {
+                m_persistentSubscriptions.put(clientID, subscriptions);
+                m_db.commit();
+            }
 
         } finally {
             Thread.currentThread().setContextClassLoader(old);

@@ -27,6 +27,7 @@ public class ConnectionDescriptor {
     private String m_clientID;
     private ServerChannel m_session;
     private boolean m_cleanSession;
+    private long created;
     
     public ConnectionDescriptor(String clientID, ServerChannel session, boolean cleanSession) {
         this.m_clientID = clientID;
@@ -44,6 +45,14 @@ public class ConnectionDescriptor {
 
     public ServerChannel getSession() {
         return m_session;
+    }
+
+    public void setCreated(long created) {
+        this.created = created;
+    }
+
+    public long getCreated() {
+        return created;
     }
 
     @Override

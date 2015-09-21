@@ -8,13 +8,13 @@
 package com.whizzosoftware.hobson.mqtt;
 
 import com.whizzosoftware.hobson.api.device.DeviceBootstrap;
-import com.whizzosoftware.smartobjects.SmartObject;
+import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 
 import java.util.Collection;
 
 public interface MQTTEventDelegate {
-    public DeviceBootstrap registerDeviceBootstrap(String deviceId);
-    public DeviceBootstrap getDeviceBootstrap(String bootstrapId);
-    public void onBootstrapRegistration(String id, String name, Collection<SmartObject> initialData);
-    public void onDeviceData(String id, Collection<SmartObject> objects);
+    DeviceBootstrap registerDeviceBootstrap(String deviceId);
+    DeviceBootstrap getDeviceBootstrap(String bootstrapId);
+    void onBootstrapRegistration(String id, String name, Collection<VariableUpdate> initialData);
+    void onDeviceData(String id, Collection<VariableUpdate> objects);
 }

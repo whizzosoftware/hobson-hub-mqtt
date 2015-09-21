@@ -17,8 +17,8 @@ import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
+import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.mqtt.device.MQTTDevice;
-import com.whizzosoftware.smartobjects.SmartObject;
 import org.eclipse.moquette.commons.Constants;
 import org.eclipse.moquette.server.Server;
 import org.eclipse.paho.client.mqttv3.*;
@@ -32,8 +32,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
@@ -44,13 +47,16 @@ import java.util.concurrent.ConcurrentNavigableMap;
 public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQTTMessageSink, MQTTEventDelegate {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final static int DEFAULT_PORT = 1883;
     private final static String PROP_BROKER_URL = "brokerUrl";
-    private final static String DEFAULT_BROKER = "tcp://localhost:1883";
+    private final static String DEFAULT_CLIENT_BROKER = "tcp://localhost:"  + DEFAULT_PORT;
 
     private DB db;
     private Server server;
     private final MqttConnectOptions connOpts;
-    private String brokerUrl;
+    private String clientBrokerUrl;
+    private String clientAdminUser;
+    private String clientAdminPassword;
     private MqttAsyncClient mqtt;
     private boolean isConnectPending;
     private boolean connected;
@@ -59,13 +65,19 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     public MQTTPlugin(String pluginId) {
         super(pluginId);
 
-        handler = new MQTTMessageHandler(this, this);
+        handler = new MQTTMessageHandler(getContext(), this, this);
+
+        // create ephemeral admin credentials
+        clientAdminUser = UUID.randomUUID().toString();
+        clientAdminPassword = UUID.randomUUID().toString();
 
         // create MQTT connection options
         connOpts = new MqttConnectOptions();
         connOpts.setConnectionTimeout(10);
         connOpts.setCleanSession(true);
         connOpts.setKeepAliveInterval(30);
+        connOpts.setUserName(clientAdminUser);
+        connOpts.setPassword(clientAdminPassword.toCharArray());
     }
 
     // ***
@@ -75,6 +87,9 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     @Override
     public void onStartup(PropertyContainer config) {
         try {
+            // get the client broker URL
+            clientBrokerUrl = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_CLIENT_BROKER);
+
             // create the internal device database
             db = DBMaker.newFileDB(getDataFile("devices")).closeOnJvmShutdown().make();
 
@@ -84,16 +99,21 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             // start the embedded broker
             Properties mqttConfig = new Properties();
             mqttConfig.put(Constants.PERSISTENT_STORE_PROPERTY_NAME, getDataFile("moquette_store.mapdb").getAbsolutePath());
+            mqttConfig.put("authenticator", new MQTTAuthenticator(getContext().getHubContext(), getDeviceManager(), clientAdminUser, clientAdminPassword));
+            mqttConfig.put("authorizator", new MQTTAuthorizator(clientAdminUser));
 
             server = new Server();
             server.startServer(mqttConfig);
             logger.debug("MQTT broker has started");
 
             // publish an SSDP device advertisement for the MQTT broker
-            getDiscoManager().publishDeviceAdvertisement(getContext().getHubContext(), new DeviceAdvertisement.Builder("urn:hobson:mqtt", "ssdp").uri("tcp://localhost:1889").build(), true);
-
-            // get the client broker URL
-            brokerUrl = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_BROKER);
+            try {
+                InetAddress ipAddr = InetAddress.getLocalHost();
+                String url = "tcp://" + ipAddr.getHostAddress() + ":" + DEFAULT_PORT;
+                getDiscoManager().publishDeviceAdvertisement(getContext().getHubContext(), new DeviceAdvertisement.Builder("urn:hobson:mqtt", "ssdp").uri(url).build(), true);
+            } catch (UnknownHostException e) {
+                logger.error("Unable to determine IP address; will not publish advertisements", e);
+            }
 
             // perform client connection to embedded broker
             connect();
@@ -137,10 +157,10 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onPluginConfigurationUpdate(PropertyContainer config) {
-        String s = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_BROKER);
-        if (!s.equals(brokerUrl)) {
+        String s = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_CLIENT_BROKER);
+        if (!s.equals(clientBrokerUrl)) {
             logger.debug("MQTT broker URL has changed");
-            brokerUrl = s;
+            clientBrokerUrl = s;
             disconnect();
         }
     }
@@ -156,12 +176,12 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     }
 
     @Override
-    public void onBootstrapRegistration(String id, String name, Collection<SmartObject> initialData) {
+    public void onBootstrapRegistration(String id, String name, Collection<VariableUpdate> initialData) {
         registerDevice(id, name, initialData);
     }
 
     @Override
-    public void onDeviceData(final String id, final Collection<SmartObject> objects) {
+    public void onDeviceData(final String id, final Collection<VariableUpdate> objects) {
         logger.trace("Received data from device " + id + ": " + objects);
 
         DeviceContext ctx = DeviceContext.create(getContext(), id);
@@ -186,7 +206,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         }
     }
 
-    protected void registerDevice(String id, String name, Collection<SmartObject> initialData) {
+    protected void registerDevice(String id, String name, Collection<VariableUpdate> initialData) {
         DeviceContext ctx = DeviceContext.create(getContext(), id);
         if (!hasDevice(ctx)) {
             MQTTDevice device = new MQTTDevice(this, id, name, DeviceType.SENSOR, initialData);
@@ -209,15 +229,15 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     protected void connect() {
         try {
             if (mqtt == null) {
-                mqtt = new MqttAsyncClient(brokerUrl, "Hobson Hub", new MemoryPersistence());
+                mqtt = new MqttAsyncClient(clientBrokerUrl, "Hobson Hub", new MemoryPersistence());
                 mqtt.setCallback(this);
             }
-            logger.debug("Attempting broker connection to {} with user {}", brokerUrl, connOpts.getUserName());
+            logger.debug("Attempting broker connection to {} with user {}", clientBrokerUrl, connOpts.getUserName());
             isConnectPending = true;
             mqtt.connect(connOpts, "", new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken token) {
-                    logger.info("Connected to MQTT broker at " + brokerUrl);
+                    logger.info("Connected to MQTT broker at " + clientBrokerUrl);
                     isConnectPending = false;
                     connected = true;
 

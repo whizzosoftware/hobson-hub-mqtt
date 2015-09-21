@@ -197,16 +197,16 @@ public class SimpleMessaging implements IMessaging, EventHandler<ValueEvent> {
 
         String passwdPath = props.getProperty(PASSWORD_FILE_PROPERTY_NAME, "");
         String configPath = System.getProperty("moquette.path", null);
-        IAuthenticator authenticator;
-        if (passwdPath.isEmpty()) {
+        IAuthenticator authenticator = (IAuthenticator)props.get("authenticator");
+        if (authenticator == null && passwdPath.isEmpty()) {
             authenticator = new AcceptAllAuthenticator();
-        } else {
+        } else if (authenticator == null) {
             authenticator = new FileAuthenticator(configPath, passwdPath);
         }
 
         String aclFilePath = props.getProperty(ACL_FILE_PROPERTY_NAME, "");
-        IAuthorizator authorizator;
-        if (aclFilePath != null && !aclFilePath.isEmpty()) {
+        IAuthorizator authorizator = (IAuthorizator)props.get("authorizator");
+        if (authorizator == null && aclFilePath != null && !aclFilePath.isEmpty()) {
             authorizator = new DenyAllAuthorizator();
             File aclFile = new File(configPath, aclFilePath);
             try {
@@ -215,7 +215,7 @@ public class SimpleMessaging implements IMessaging, EventHandler<ValueEvent> {
                 LOG.error(String.format("Format error in parsing acl file %s", aclFile), pex);
             }
             LOG.info("Using acl file defined at path {}", aclFilePath);
-        } else {
+        } else if (authorizator == null) {
             authorizator = new PermitAllAuthorizator();
             LOG.info("Starting without ACL definition");
         }

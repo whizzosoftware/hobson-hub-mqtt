@@ -8,14 +8,14 @@
 package com.whizzosoftware.hobson.mqtt;
 
 import com.whizzosoftware.hobson.api.device.DeviceBootstrap;
-import com.whizzosoftware.smartobjects.SmartObject;
+import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 
 import java.util.*;
 
 public class MockMQTTEventDelegate implements MQTTEventDelegate {
     private Map<String,String> registrations = new HashMap<>();
     private Map<String,DeviceBootstrap> bootstrapToDeviceMap = new HashMap<>();
-    private Map<String,Collection<SmartObject>> data = new HashMap<>();
+    private Map<String,Collection<VariableUpdate>> data = new HashMap<>();
 
     public int getEventCount() {
         return registrations.size() + data.size();
@@ -29,7 +29,7 @@ public class MockMQTTEventDelegate implements MQTTEventDelegate {
         return registrations.get(id);
     }
 
-    public Collection<SmartObject> getData(String id) {
+    public Collection<VariableUpdate> getData(String id) {
         return data.get(id);
     }
 
@@ -47,12 +47,12 @@ public class MockMQTTEventDelegate implements MQTTEventDelegate {
     }
 
     @Override
-    public void onBootstrapRegistration(String id, String name, Collection<SmartObject> initialData) {
+    public void onBootstrapRegistration(String id, String name, Collection<VariableUpdate> initialData) {
         registrations.put(id, name);
     }
 
     @Override
-    public void onDeviceData(String id, Collection<SmartObject> objects) {
+    public void onDeviceData(String id, Collection<VariableUpdate> objects) {
         data.put(id, objects);
     }
 }

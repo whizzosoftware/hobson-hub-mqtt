@@ -25,6 +25,7 @@ import org.eclipse.moquette.server.ServerChannel;
 public class LostConnectionEvent extends MessagingEvent {
 //    public final ServerChannel session;
     public final String clientID;
+    public final long created = System.currentTimeMillis();
 
     public LostConnectionEvent(/*ServerChannel session, */String clientID) {
 //        this.session = session;

@@ -7,7 +7,8 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.smartobjects.SmartObject;
+import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.junit.Test;
@@ -21,12 +22,12 @@ public class MQTTMessageHandlerTest {
     public void testRegisterMessage() {
         MockMQTTMessageSink sink = new MockMQTTMessageSink();
         MockMQTTEventDelegate listener = new MockMQTTEventDelegate();
-        MQTTMessageHandler handler = new MQTTMessageHandler(sink, listener);
+        MQTTMessageHandler handler = new MQTTMessageHandler(PluginContext.createLocal("plugin1"), sink, listener);
 
         assertEquals(0, sink.getMessageCount());
         assertEquals(0, listener.getEventCount());
 
-        JSONObject json = new JSONObject(new JSONTokener("{\"deviceId\":\"3b2184be-2f2c-11e5-a151-feff819cdc9f\",\"nonce\":\"foo\",\"name\":\"Sensor 1\",\"data\":{\"3201.0\":{\"5550.0\":\"true\"}}}"));
+        JSONObject json = new JSONObject(new JSONTokener("{\"deviceId\":\"3b2184be-2f2c-11e5-a151-feff819cdc9f\",\"nonce\":\"foo\",\"name\":\"Sensor 1\",\"data\":{\"on\":false}}"));
         handler.onMessage("bootstrap", json);
 
         assertEquals(1, sink.getMessageCount());
@@ -49,7 +50,7 @@ public class MQTTMessageHandlerTest {
     public void testDataMessage() {
         MockMQTTMessageSink sink = new MockMQTTMessageSink();
         MockMQTTEventDelegate listener = new MockMQTTEventDelegate();
-        MQTTMessageHandler handler = new MQTTMessageHandler(sink, listener);
+        MQTTMessageHandler handler = new MQTTMessageHandler(PluginContext.createLocal("plugin1"), sink, listener);
 
         assertEquals(0, sink.getMessageCount());
         assertEquals(0, listener.getEventCount());
@@ -66,7 +67,7 @@ public class MQTTMessageHandlerTest {
         sink.clear();
 
         // send data message
-        json = new JSONObject(new JSONTokener("{\"3303.0\":{\"5700.0\":\"72.5\",\"5701.0\":\"[degF]\"},\"3304.0\":{\"5700.0\":\"30.1\",\"5701.0\":\"%\"}}"));
+        json = new JSONObject(new JSONTokener("{\"inTempF\":72.5,\"inRh\":30.1}"));
         handler.onMessage(dataTopic, json);
 
         assertEquals(2, listener.getEventCount());
@@ -74,9 +75,10 @@ public class MQTTMessageHandlerTest {
         assertNotNull(listener.getData("sensor1"));
         assertEquals(2, listener.getData("sensor1").size());
 
-        Iterator<SmartObject> it = listener.getData("sensor1").iterator();
-        SmartObject so1 = it.next();
-        SmartObject so2 = it.next();
-        assertTrue(so1.getId() == 3303 || so2.getId() == 3304);
+        Iterator<VariableUpdate> it = listener.getData("sensor1").iterator();
+        VariableUpdate so1 = it.next();
+        VariableUpdate so2 = it.next();
+        assertTrue(so1.getName().equals("inTempF") || so1.getName().equals("inRh"));
+        assertTrue(so2.getName().equals("inTempF") || so2.getName().equals("inRh"));
     }
 }

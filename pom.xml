@@ -58,14 +58,15 @@
             <version>2.1.4</version>
         </dependency>
         <dependency>
-            <groupId>com.whizzosoftware.smartobjects</groupId>
-            <artifactId>smartobjects-api</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>org.mapdb</groupId>
             <artifactId>mapdb</artifactId>
             <version>1.0.7</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.servicemix.bundles</groupId>
+            <artifactId>org.apache.servicemix.bundles.json</artifactId>
+            <version>20140107_1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -153,16 +154,6 @@
             <id>hobson-releases</id>
             <name>libs-release</name>
             <url>http://dl.bintray.com/whizzosoftware/maven</url>
-        </repository>
-        <repository>
-            <id>bintray</id>
-            <url>http://dl.bintray.com/andsel/maven/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
         </repository>
     </repositories>
     <scm>
