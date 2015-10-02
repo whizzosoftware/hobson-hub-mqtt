@@ -13,6 +13,7 @@ import com.whizzosoftware.hobson.api.plugin.HobsonPlugin;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.HobsonVariable;
+import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -86,6 +87,14 @@ public class MQTTDevice extends AbstractHobsonDevice {
     @Override
     public String[] getTelemetryVariableNames() {
         return variableMap.keySet().toArray(new String[variableMap.size()]);
+    }
+
+    @Override
+    public String getPreferredVariableName() {
+        if (variableMap.containsKey(VariableConstants.ON)) {
+            return VariableConstants.ON;
+        }
+        return null;
     }
 
     @Override
