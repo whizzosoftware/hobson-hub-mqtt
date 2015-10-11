@@ -13,6 +13,7 @@ import com.whizzosoftware.hobson.api.device.DeviceType;
 import com.whizzosoftware.hobson.api.device.HobsonDevice;
 import com.whizzosoftware.hobson.api.disco.DeviceAdvertisement;
 import com.whizzosoftware.hobson.api.hub.HubContext;
+import com.whizzosoftware.hobson.api.hub.NetworkInfo;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
@@ -32,8 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.UUID;
@@ -108,10 +107,10 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
             // publish an SSDP device advertisement for the MQTT broker
             try {
-                InetAddress ipAddr = InetAddress.getLocalHost();
-                String url = "tcp://" + ipAddr.getHostAddress() + ":" + DEFAULT_PORT;
+                NetworkInfo ni = getHubManager().getLocalManager().getNetworkInfo();
+                String url = "tcp://" + ni.getInetAddress().getHostAddress() + ":" + DEFAULT_PORT;
                 getDiscoManager().publishDeviceAdvertisement(getContext().getHubContext(), new DeviceAdvertisement.Builder("urn:hobson:mqtt", "ssdp").uri(url).build(), true);
-            } catch (UnknownHostException e) {
+            } catch (IOException e) {
                 logger.error("Unable to determine IP address; will not publish advertisements", e);
             }
 
