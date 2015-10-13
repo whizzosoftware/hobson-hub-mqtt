@@ -16,6 +16,7 @@ import com.whizzosoftware.hobson.api.hub.HubContext;
 import com.whizzosoftware.hobson.api.hub.NetworkInfo;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.property.PropertyConstraintType;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
@@ -140,7 +141,9 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     @Override
     protected TypedProperty[] createSupportedProperties() {
         return new TypedProperty[] {
-            new TypedProperty(PROP_BROKER_URL, "Broker URL", "The MQTT broker to connect to (defaults to tcp://localhost:1883).", TypedProperty.Type.STRING)
+            new TypedProperty.Builder(PROP_BROKER_URL, "Broker URL", "The MQTT broker to connect to (defaults to tcp://localhost:1883).", TypedProperty.Type.STRING).
+                constraint(PropertyConstraintType.required, true).
+                build()
         };
     }
 
