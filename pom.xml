@@ -148,6 +148,16 @@
             <url>https://repo.eclipse.org/content/repositories/paho-releases/</url>
         </repository>
         <repository>
+            <id>Moquette Repo</id>
+            <url>http://dl.bintray.com/andsel/maven/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
