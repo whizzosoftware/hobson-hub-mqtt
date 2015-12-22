@@ -7,8 +7,8 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.api.device.DeviceBootstrap;
 import com.whizzosoftware.hobson.api.device.DeviceContext;
+import com.whizzosoftware.hobson.api.device.DevicePassport;
 import com.whizzosoftware.hobson.api.device.DeviceType;
 import com.whizzosoftware.hobson.api.device.HobsonDevice;
 import com.whizzosoftware.hobson.api.disco.DeviceAdvertisement;
@@ -168,17 +168,17 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     }
 
     @Override
-    public DeviceBootstrap registerDeviceBootstrap(String deviceId) {
-        return getDeviceManager().registerDeviceBootstrap(HubContext.createLocal(), deviceId);
+    public DevicePassport activateDevicePassport(String deviceId) {
+        return getDeviceManager().activateDevicePassport(HubContext.createLocal(), deviceId);
     }
 
     @Override
-    public DeviceBootstrap getDeviceBootstrap(String bootstrapId) {
-        return getDeviceManager().getDeviceBootstrap(getContext().getHubContext(), bootstrapId);
+    public DevicePassport getDevicePassport(String bootstrapId) {
+        return getDeviceManager().getDevicePassport(getContext().getHubContext(), bootstrapId);
     }
 
     @Override
-    public void onBootstrapRegistration(String id, String name, Collection<VariableUpdate> initialData) {
+    public void onPassportRegistration(String id, String name, Collection<VariableUpdate> initialData) {
         registerDevice(id, name, initialData);
     }
 

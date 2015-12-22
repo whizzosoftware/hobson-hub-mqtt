@@ -7,8 +7,8 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.api.device.DeviceBootstrap;
 import com.whizzosoftware.hobson.api.device.DeviceManager;
+import com.whizzosoftware.hobson.api.device.DevicePassport;
 import com.whizzosoftware.hobson.api.hub.HubContext;
 import org.eclipse.moquette.spi.impl.security.IAuthenticator;
 
@@ -32,7 +32,7 @@ public class MQTTAuthenticator implements IAuthenticator {
     }
 
     public boolean checkValid(String username, String password) {
-        DeviceBootstrap db = deviceManager.getDeviceBootstrap(context, username);
+        DevicePassport db = deviceManager.getDevicePassport(context, username);
         return ((username.equals(adminUser) && password.equals(adminPassword)) || (db != null && db.getSecret() != null && db.getSecret().equals(password)));
     }
 }

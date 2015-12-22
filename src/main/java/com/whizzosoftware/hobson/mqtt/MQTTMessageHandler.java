@@ -7,10 +7,10 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.api.device.DeviceAlreadyBoostrappedException;
-import com.whizzosoftware.hobson.api.device.DeviceBootstrap;
-import com.whizzosoftware.hobson.api.device.DeviceBootstrapNotFoundException;
 import com.whizzosoftware.hobson.api.device.DeviceContext;
+import com.whizzosoftware.hobson.api.device.DevicePassport;
+import com.whizzosoftware.hobson.api.device.DevicePassportAlreadyActivatedException;
+import com.whizzosoftware.hobson.api.device.DevicePassportNotFoundException;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import org.json.JSONException;
@@ -66,18 +66,18 @@ public class MQTTMessageHandler {
                 JSONObject res = new JSONObject();
 
                 try {
-                    DeviceBootstrap bootstrap = delegate.registerDeviceBootstrap(deviceId);
+                    DevicePassport passport = delegate.activateDevicePassport(deviceId);
 
                     // alert listener of the device registration
-                    delegate.onBootstrapRegistration(deviceId, json.has("name") ? json.getString("name") : "Unknown MQTT Device", json.has("data") ? createVariableUpdates(bootstrap.getDeviceId(), json.getJSONObject("data")) : null);
+                    delegate.onPassportRegistration(deviceId, json.has("name") ? json.getString("name") : "Unknown MQTT Device", json.has("data") ? createVariableUpdates(passport.getDeviceId(), json.getJSONObject("data")) : null);
 
                     // create JSON response message
-                    res.put("id", bootstrap.getId());
-                    res.put("secret", bootstrap.getSecret());
-                    res.put("topics", createTopicJson(bootstrap.getId()));
-                } catch (DeviceAlreadyBoostrappedException e) {
+                    res.put("id", passport.getId());
+                    res.put("secret", passport.getSecret());
+                    res.put("topics", createTopicJson(passport.getId()));
+                } catch (DevicePassportAlreadyActivatedException e) {
                     res.put("topics", createTopicJson(e.getId()));
-                } catch (DeviceBootstrapNotFoundException e) {
+                } catch (DevicePassportNotFoundException e) {
                     res.put("error", "Unable to bootstrap device");
                 }
 
@@ -92,9 +92,9 @@ public class MQTTMessageHandler {
             try {
                 // alert listener of received data
                 int ix = topic.indexOf('/') + 1;
-                DeviceBootstrap deviceBootstrap = delegate.getDeviceBootstrap(topic.substring(ix, topic.indexOf('/', ix)));
-                if (deviceBootstrap != null) {
-                    delegate.onDeviceData(deviceBootstrap.getDeviceId(), createVariableUpdates(deviceBootstrap.getDeviceId(), json));
+                DevicePassport passport = delegate.getDevicePassport(topic.substring(ix, topic.indexOf('/', ix)));
+                if (passport != null) {
+                    delegate.onDeviceData(passport.getDeviceId(), createVariableUpdates(passport.getDeviceId(), json));
                 } else {
                     logger.error("Received data from device with invalid bootstrap identifier");
                 }

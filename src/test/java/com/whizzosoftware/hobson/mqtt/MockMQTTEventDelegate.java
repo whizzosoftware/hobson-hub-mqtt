@@ -7,14 +7,14 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.api.device.DeviceBootstrap;
+import com.whizzosoftware.hobson.api.device.DevicePassport;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 
 import java.util.*;
 
 public class MockMQTTEventDelegate implements MQTTEventDelegate {
     private Map<String,String> registrations = new HashMap<>();
-    private Map<String,DeviceBootstrap> bootstrapToDeviceMap = new HashMap<>();
+    private Map<String,DevicePassport> bootstrapToDeviceMap = new HashMap<>();
     private Map<String,Collection<VariableUpdate>> data = new HashMap<>();
 
     public int getEventCount() {
@@ -34,20 +34,20 @@ public class MockMQTTEventDelegate implements MQTTEventDelegate {
     }
 
     @Override
-    public DeviceBootstrap registerDeviceBootstrap(String deviceId) {
-        DeviceBootstrap db = new DeviceBootstrap(UUID.randomUUID().toString(), deviceId, System.currentTimeMillis());
+    public DevicePassport activateDevicePassport(String deviceId) {
+        DevicePassport db = new DevicePassport(UUID.randomUUID().toString(), deviceId, System.currentTimeMillis());
         db.setSecret(deviceId);
         bootstrapToDeviceMap.put(db.getId(), db);
         return db;
     }
 
     @Override
-    public DeviceBootstrap getDeviceBootstrap(String bootstrapId) {
+    public DevicePassport getDevicePassport(String bootstrapId) {
         return bootstrapToDeviceMap.get(bootstrapId);
     }
 
     @Override
-    public void onBootstrapRegistration(String id, String name, Collection<VariableUpdate> initialData) {
+    public void onPassportRegistration(String id, String name, Collection<VariableUpdate> initialData) {
         registrations.put(id, name);
     }
 
