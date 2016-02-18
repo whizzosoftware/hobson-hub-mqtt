@@ -12,6 +12,7 @@ import com.whizzosoftware.hobson.api.device.DevicePassport;
 import com.whizzosoftware.hobson.api.device.DevicePassportAlreadyActivatedException;
 import com.whizzosoftware.hobson.api.device.DevicePassportNotFoundException;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.variable.VariableContext;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -108,7 +109,7 @@ public class MQTTMessageHandler {
         List<VariableUpdate> updates = new ArrayList<>();
         for (Object o : json.keySet()) {
             String key = o.toString();
-            updates.add(new VariableUpdate(DeviceContext.create(ctx, deviceId), key, json.get(key)));
+            updates.add(new VariableUpdate(VariableContext.create(DeviceContext.create(ctx, deviceId), key), json.get(key)));
         }
         return updates;
     }

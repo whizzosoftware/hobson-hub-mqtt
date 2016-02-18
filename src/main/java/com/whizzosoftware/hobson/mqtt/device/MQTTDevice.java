@@ -69,7 +69,7 @@ public class MQTTDevice extends AbstractHobsonDevice {
     public void onStartup(PropertyContainer config) {
         if (variableMap != null) {
             for (MQTTDeviceVariable var : variableMap.values()) {
-                publishVariable(var.name, var.initialValue, var.mask);
+                publishVariable(var.name, var.initialValue, var.mask, var.initialValue != null ? System.currentTimeMillis() : null);
             }
         }
     }

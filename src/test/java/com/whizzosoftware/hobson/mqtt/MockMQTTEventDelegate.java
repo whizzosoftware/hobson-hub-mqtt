@@ -8,6 +8,7 @@
 package com.whizzosoftware.hobson.mqtt;
 
 import com.whizzosoftware.hobson.api.device.DevicePassport;
+import com.whizzosoftware.hobson.api.hub.HubContext;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 
 import java.util.*;
@@ -35,7 +36,7 @@ public class MockMQTTEventDelegate implements MQTTEventDelegate {
 
     @Override
     public DevicePassport activateDevicePassport(String deviceId) {
-        DevicePassport db = new DevicePassport(UUID.randomUUID().toString(), deviceId, System.currentTimeMillis());
+        DevicePassport db = new DevicePassport(HubContext.createLocal(), UUID.randomUUID().toString(), deviceId, System.currentTimeMillis());
         db.setSecret(deviceId);
         bootstrapToDeviceMap.put(db.getId(), db);
         return db;

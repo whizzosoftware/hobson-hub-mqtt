@@ -192,7 +192,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         if (device != null) {
             if (device instanceof MQTTDevice) {
                 ((MQTTDevice)getDevice(ctx)).onDeviceData(objects);
-                getDeviceManager().checkInDevice(ctx, System.currentTimeMillis());
+                getDeviceManager().setDeviceAvailability(ctx, true, System.currentTimeMillis());
             } else {
                 logger.error("Received data for non-MQTT device: " + ctx);
             }
@@ -219,7 +219,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             devices.put(id, device.toJSON().toString());
             db.commit();
         }
-        getDeviceManager().checkInDevice(ctx, System.currentTimeMillis());
+        getDeviceManager().setDeviceAvailability(ctx, true, System.currentTimeMillis());
     }
 
     protected void restoreDevices() {
@@ -228,7 +228,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             JSONObject json = new JSONObject(new JSONTokener(devices.get(id)));
             MQTTDevice d = new MQTTDevice(this, json);
             // since the device has never technically checked-in, delete the default check-in time
-            d.checkInDevice(null);
+            d.setDeviceAvailability(false, null);
             publishDevice(d);
         }
     }
