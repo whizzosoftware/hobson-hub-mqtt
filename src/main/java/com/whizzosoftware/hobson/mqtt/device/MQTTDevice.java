@@ -85,11 +85,6 @@ public class MQTTDevice extends AbstractHobsonDevice {
     }
 
     @Override
-    public String[] getTelemetryVariableNames() {
-        return variableMap.keySet().toArray(new String[variableMap.size()]);
-    }
-
-    @Override
     public String getPreferredVariableName() {
         if (variableMap.containsKey(VariableConstants.ON)) {
             return VariableConstants.ON;
