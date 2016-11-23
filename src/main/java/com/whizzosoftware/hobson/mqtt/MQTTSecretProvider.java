@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (c) 2015 Whizzo Software, LLC.
+ * Copyright (c) 2016 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -9,8 +9,6 @@
 */
 package com.whizzosoftware.hobson.mqtt;
 
-import org.json.JSONObject;
-
-interface MQTTMessageSink {
-    void sendMessage(String topic, JSONObject payload);
+interface MQTTSecretProvider {
+    String getDeviceSecret(String deviceId);
 }

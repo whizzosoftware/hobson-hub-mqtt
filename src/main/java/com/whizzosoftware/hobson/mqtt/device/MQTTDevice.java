@@ -1,27 +1,28 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2015 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.mqtt.device;
 
-import com.whizzosoftware.hobson.api.device.AbstractHobsonDevice;
 import com.whizzosoftware.hobson.api.device.DeviceType;
+import com.whizzosoftware.hobson.api.device.HobsonDeviceDescriptor;
+import com.whizzosoftware.hobson.api.device.proxy.AbstractDeviceProxy;
 import com.whizzosoftware.hobson.api.plugin.HobsonPlugin;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.variable.HobsonVariable;
-import com.whizzosoftware.hobson.api.variable.VariableConstants;
-import com.whizzosoftware.hobson.api.variable.VariableUpdate;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.whizzosoftware.hobson.api.variable.*;
 
 import java.util.*;
 
-public class MQTTDevice extends AbstractHobsonDevice {
-    private DeviceType type;
+public class MQTTDevice extends AbstractDeviceProxy {
+    public static final String PROP_SECRET = "secret";
+    public static final String PROP_ACTIVATED = "activated";
+
     private Map<String,MQTTDeviceVariable> variableMap = new HashMap<>();
 
     /**
@@ -30,58 +31,41 @@ public class MQTTDevice extends AbstractHobsonDevice {
      * @param plugin the HobsonPlugin that created this device
      * @param id     the device ID
      */
-    public MQTTDevice(HobsonPlugin plugin, String id, String name, DeviceType type, Collection<VariableUpdate> initialData) {
-        super(plugin, id);
-
-        setDefaultName(name);
-
-        this.type = type;
-
-        if (initialData != null) {
-            for (VariableUpdate vu : initialData) {
-                variableMap.put(vu.getName(), new MQTTDeviceVariable(vu.getName(), HobsonVariable.Mask.READ_ONLY, vu.getValue()));
-            }
-        }
+    public MQTTDevice(HobsonPlugin plugin, String id, String name, DeviceType type) {
+        super(plugin, id, name, type);
     }
 
-    /**
-     * Constructor.
-     *
-     * @param plugin the HobsonPlugin that created this device
-     * @param json a JSON representation of the device
-     */
-    public MQTTDevice(HobsonPlugin plugin, JSONObject json) {
-        super(plugin, json.getString("id"));
-
-        setDefaultName(json.getString("name"));
-
-        this.type = DeviceType.valueOf(json.getString("type"));
-
-        JSONArray varArray = json.getJSONArray("vars");
-        for (int i=0; i < varArray.length(); i++) {
-            JSONObject varJson = varArray.getJSONObject(i);
-            String name = varJson.getString("name");
-            variableMap.put(name, new MQTTDeviceVariable(name, HobsonVariable.Mask.valueOf(varJson.getString("mask")), null));
-        }
-    }
-
-    @Override
-    public void onStartup(PropertyContainer config) {
-        if (variableMap != null) {
-            for (MQTTDeviceVariable var : variableMap.values()) {
-                publishVariable(var.name, var.initialValue, var.mask, var.initialValue != null ? System.currentTimeMillis() : null);
+    public MQTTDevice(HobsonPlugin plugin, HobsonDeviceDescriptor desc) {
+        super(plugin, desc.getContext().getDeviceId(), desc.getName(), desc.getType());
+        Collection<DeviceVariableDescriptor> variables = desc.getVariables();
+        if (variables != null) {
+            for (DeviceVariableDescriptor dvd : variables) {
+                variableMap.put(dvd.getContext().getName(), new MQTTDeviceVariable(dvd.getContext().getName(), dvd.getMask(), null));
             }
         }
     }
 
     @Override
-    protected TypedProperty[] createSupportedProperties() {
+    protected TypedProperty[] createConfigurationPropertyTypes() {
+        return new TypedProperty[] {
+            new TypedProperty.Builder(PROP_SECRET, "Device Secret", "The device secret", TypedProperty.Type.SECURE_STRING).build(),
+            new TypedProperty.Builder(PROP_ACTIVATED, "Activated", "Indicates if the device has been activated", TypedProperty.Type.BOOLEAN).build()
+        };
+    }
+
+    @Override
+    public String getManufacturerName() {
         return null;
     }
 
     @Override
-    public DeviceType getType() {
-        return type;
+    public String getManufacturerVersion() {
+        return null;
+    }
+
+    @Override
+    public String getModelName() {
+        return null;
     }
 
     @Override
@@ -92,6 +76,30 @@ public class MQTTDevice extends AbstractHobsonDevice {
         return null;
     }
 
+    public boolean isActivated() {
+        Boolean b = (Boolean)getConfigurationProperty(PROP_ACTIVATED);
+        return (b != null && b);
+    }
+
+    public void onActivation(Map<String,Object> variables) {
+        long now = System.currentTimeMillis();
+        setConfigurationProperty(PROP_ACTIVATED, true);
+        if (variables != null) {
+            List<DeviceProxyVariable> vars = new ArrayList<>();
+            for (String name : variables.keySet()) {
+                vars.add(createDeviceVariable(name, VariableMask.READ_ONLY, variables.get(name), now));
+            }
+            if (vars.size() > 0) {
+                publishVariables(vars);
+            }
+        }
+    }
+
+    @Override
+    public void onDeviceConfigurationUpdate(PropertyContainer config) {
+
+    }
+
     @Override
     public void onShutdown() {
     }
@@ -100,34 +108,40 @@ public class MQTTDevice extends AbstractHobsonDevice {
     public void onSetVariable(String variableName, Object value) {
     }
 
-    public void onDeviceData(Collection<VariableUpdate> data) {
-        if (data.size() > 0) {
-            fireVariableUpdateNotifications(new ArrayList<>(data));
+    @Override
+    public void onStartup(String name, PropertyContainer config) {
+        // make sure device has a secret configured
+        if (!config.hasPropertyValue(PROP_SECRET)) {
+            setConfigurationProperty(PROP_SECRET, UUID.randomUUID().toString());
+        }
+
+        // publish any appropriate variables
+        if (variableMap != null) {
+            List<DeviceProxyVariable> vars = new ArrayList<>();
+            for (MQTTDeviceVariable var : variableMap.values()) {
+                vars.add(createDeviceVariable(var.name, var.mask, var.initialValue, var.initialValue != null ? System.currentTimeMillis() : null));
+            }
+            publishVariables(vars);
         }
     }
 
-    public JSONObject toJSON() {
-        JSONObject json = new JSONObject();
-        json.put("id", getContext().getDeviceId());
-        json.put("name", getDefaultName());
-        json.put("type", getType().toString());
-        JSONArray vars = new JSONArray();
-        for (MQTTDeviceVariable v : variableMap.values()) {
-            JSONObject vjson = new JSONObject();
-            vjson.put("name", v.name);
-            vjson.put("mask", v.mask.toString());
-            vars.put(vjson);
+    public void onDeviceData(Collection<DeviceVariableState> data) {
+        if (data.size() > 0) {
+            Map<String,Object> values = new HashMap<>();
+            for (DeviceVariableState s : data) {
+                values.put(s.getContext().getName(), s.getValue());
+            }
+            setVariableValues(values);
         }
-        json.put("vars", vars);
-        return json;
+        setLastCheckin(System.currentTimeMillis());
     }
 
     private class MQTTDeviceVariable {
         public String name;
-        public HobsonVariable.Mask mask;
+        public VariableMask mask;
         public Object initialValue;
 
-        public MQTTDeviceVariable(String name, HobsonVariable.Mask mask, Object initialValue) {
+        public MQTTDeviceVariable(String name, VariableMask mask, Object initialValue) {
             this.name = name;
             this.mask = mask;
             this.initialValue = initialValue;

@@ -7,53 +7,52 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.api.device.DevicePassport;
-import com.whizzosoftware.hobson.api.hub.HubContext;
-import com.whizzosoftware.hobson.api.variable.VariableUpdate;
+import com.whizzosoftware.hobson.api.variable.DeviceVariableState;
 
 import java.util.*;
 
 public class MockMQTTEventDelegate implements MQTTEventDelegate {
     private Map<String,String> registrations = new HashMap<>();
-    private Map<String,DevicePassport> bootstrapToDeviceMap = new HashMap<>();
-    private Map<String,Collection<VariableUpdate>> data = new HashMap<>();
+    private Map<String,Collection<DeviceVariableState>> data = new HashMap<>();
 
     public int getEventCount() {
         return registrations.size() + data.size();
+    }
+
+    public void registerDevice(String deviceId) {
+        registrations.put(deviceId, UUID.randomUUID().toString());
     }
 
     public Collection<String> getDeviceRegistrationIds() {
         return registrations.keySet();
     }
 
-    public String getDeviceRegistrationName(String id) {
-        return registrations.get(id);
-    }
-
-    public Collection<VariableUpdate> getData(String id) {
+    public Collection<DeviceVariableState> getData(String id) {
         return data.get(id);
     }
 
     @Override
-    public DevicePassport activateDevicePassport(String deviceId) {
-        DevicePassport db = new DevicePassport(HubContext.createLocal(), UUID.randomUUID().toString(), deviceId, System.currentTimeMillis());
-        db.setSecret(deviceId);
-        bootstrapToDeviceMap.put(db.getId(), db);
-        return db;
+    public boolean isDeviceActivated(String deviceId) {
+        return registrations.containsKey(deviceId);
     }
 
     @Override
-    public DevicePassport getDevicePassport(String bootstrapId) {
-        return bootstrapToDeviceMap.get(bootstrapId);
+    public String getDeviceSecret(String deviceId) {
+        return registrations.get(deviceId);
     }
 
     @Override
-    public void onPassportRegistration(String id, String name, Collection<VariableUpdate> initialData) {
-        registrations.put(id, name);
+    public boolean hasDevice(String deviceId) {
+        return true;
     }
 
     @Override
-    public void onDeviceData(String id, Collection<VariableUpdate> objects) {
+    public void onDeviceData(String id, Collection<DeviceVariableState> objects) {
         data.put(id, objects);
+    }
+
+    @Override
+    public void activateDevice(String deviceId, Map<String,Object> variables) {
+        registrations.put(deviceId, UUID.randomUUID().toString());
     }
 }

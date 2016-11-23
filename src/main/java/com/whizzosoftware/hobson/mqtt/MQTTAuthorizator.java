@@ -7,7 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import org.eclipse.moquette.spi.impl.security.IAuthorizator;
+import io.moquette.spi.security.IAuthorizator;
 
 /**
  * A Hobson-specific Moquette "authorizator". It enforces access control policies for admin, anonymous

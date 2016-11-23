@@ -8,7 +8,7 @@
 package com.whizzosoftware.hobson.mqtt;
 
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
-import com.whizzosoftware.hobson.api.variable.VariableUpdate;
+import com.whizzosoftware.hobson.api.variable.DeviceVariableState;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.junit.Test;
@@ -43,7 +43,6 @@ public class MQTTMessageHandlerTest {
 
         assertEquals(1, listener.getEventCount());
         assertEquals("3b2184be-2f2c-11e5-a151-feff819cdc9f", listener.getDeviceRegistrationIds().iterator().next());
-        assertEquals("Sensor 1", listener.getDeviceRegistrationName("3b2184be-2f2c-11e5-a151-feff819cdc9f"));
     }
 
     @Test
@@ -75,10 +74,10 @@ public class MQTTMessageHandlerTest {
         assertNotNull(listener.getData("sensor1"));
         assertEquals(2, listener.getData("sensor1").size());
 
-        Iterator<VariableUpdate> it = listener.getData("sensor1").iterator();
-        VariableUpdate so1 = it.next();
-        VariableUpdate so2 = it.next();
-        assertTrue(so1.getName().equals("inTempF") || so1.getName().equals("inRh"));
-        assertTrue(so2.getName().equals("inTempF") || so2.getName().equals("inRh"));
+        Iterator<DeviceVariableState> it = listener.getData("sensor1").iterator();
+        DeviceVariableState so1 = it.next();
+        DeviceVariableState so2 = it.next();
+        assertTrue(so1.getContext().getName().equals("inTempF") || so1.getContext().getName().equals("inRh"));
+        assertTrue(so2.getContext().getName().equals("inTempF") || so2.getContext().getName().equals("inRh"));
     }
 }

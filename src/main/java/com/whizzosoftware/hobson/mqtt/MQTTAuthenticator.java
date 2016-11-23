@@ -7,10 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.api.device.DeviceManager;
-import com.whizzosoftware.hobson.api.device.DevicePassport;
-import com.whizzosoftware.hobson.api.hub.HubContext;
-import org.eclipse.moquette.spi.impl.security.IAuthenticator;
+import io.moquette.spi.security.IAuthenticator;
 
 /**
  * A Hobson-specific authenticator for Moquette. It confirms username/password based on the device manager's
@@ -19,20 +16,19 @@ import org.eclipse.moquette.spi.impl.security.IAuthenticator;
  * @author Dan Noguerol
  */
 public class MQTTAuthenticator implements IAuthenticator {
-    private HubContext context;
-    private DeviceManager deviceManager;
+    private MQTTSecretProvider provider;
     private String adminUser;
     private String adminPassword;
 
-    public MQTTAuthenticator(HubContext context, DeviceManager deviceManager, String adminUser, String adminPassword) {
-        this.context = context;
-        this.deviceManager = deviceManager;
+    public MQTTAuthenticator(MQTTSecretProvider provider, String adminUser, String adminPassword) {
+        this.provider = provider;
         this.adminUser = adminUser;
         this.adminPassword = adminPassword;
     }
 
-    public boolean checkValid(String username, String password) {
-        DevicePassport db = deviceManager.getDevicePassport(context, username);
-        return ((username.equals(adminUser) && password.equals(adminPassword)) || (db != null && db.getSecret() != null && db.getSecret().equals(password)));
+    public boolean checkValid(String username, byte[] p) {
+        String secret = provider.getDeviceSecret(username);
+        String password = new String(p);
+        return ((username.equals(adminUser) && password.equals(adminPassword)) || (secret != null && secret.equals(password)));
     }
 }

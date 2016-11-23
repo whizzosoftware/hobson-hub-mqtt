@@ -7,14 +7,15 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.api.device.DevicePassport;
-import com.whizzosoftware.hobson.api.variable.VariableUpdate;
+import com.whizzosoftware.hobson.api.variable.DeviceVariableState;
 
 import java.util.Collection;
+import java.util.Map;
 
 public interface MQTTEventDelegate {
-    DevicePassport activateDevicePassport(String deviceId);
-    DevicePassport getDevicePassport(String bootstrapId);
-    void onPassportRegistration(String id, String name, Collection<VariableUpdate> initialData);
-    void onDeviceData(String id, Collection<VariableUpdate> objects);
+    void activateDevice(String deviceId, Map<String,Object> variables);
+    String getDeviceSecret(String deviceId);
+    boolean hasDevice(String deviceId);
+    boolean isDeviceActivated(String deviceId);
+    void onDeviceData(String id, Collection<DeviceVariableState> objects);
 }

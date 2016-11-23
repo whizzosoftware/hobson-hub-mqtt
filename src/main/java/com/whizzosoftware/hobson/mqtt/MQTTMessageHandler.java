@@ -1,27 +1,23 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2015 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.mqtt;
 
-import com.whizzosoftware.hobson.api.device.DeviceContext;
-import com.whizzosoftware.hobson.api.device.DevicePassport;
-import com.whizzosoftware.hobson.api.device.DevicePassportAlreadyActivatedException;
-import com.whizzosoftware.hobson.api.device.DevicePassportNotFoundException;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
-import com.whizzosoftware.hobson.api.variable.VariableContext;
-import com.whizzosoftware.hobson.api.variable.VariableUpdate;
+import com.whizzosoftware.hobson.api.variable.DeviceVariableContext;
+import com.whizzosoftware.hobson.api.variable.DeviceVariableState;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -66,19 +62,28 @@ public class MQTTMessageHandler {
 
                 JSONObject res = new JSONObject();
 
-                try {
-                    DevicePassport passport = delegate.activateDevicePassport(deviceId);
+                if (delegate.hasDevice(deviceId)) {
+                    if (!delegate.isDeviceActivated(deviceId)) {
+                        // activate device
+                        Map<String,Object> vars = null;
+                        if (json.has("data")) {
+                            vars = new HashMap<>();
+                            JSONObject data = json.getJSONObject("data");
+                            for (Object o : data.keySet()) {
+                                String key = o.toString();
+                                vars.put(key, data.get(key));
+                            }
+                        }
+                        delegate.activateDevice(deviceId, vars);
 
-                    // alert listener of the device registration
-                    delegate.onPassportRegistration(deviceId, json.has("name") ? json.getString("name") : "Unknown MQTT Device", json.has("data") ? createVariableUpdates(passport.getDeviceId(), json.getJSONObject("data")) : null);
-
-                    // create JSON response message
-                    res.put("id", passport.getId());
-                    res.put("secret", passport.getSecret());
-                    res.put("topics", createTopicJson(passport.getId()));
-                } catch (DevicePassportAlreadyActivatedException e) {
-                    res.put("topics", createTopicJson(e.getId()));
-                } catch (DevicePassportNotFoundException e) {
+                        // create JSON response message
+                        res.put("id", deviceId);
+                        res.put("secret", delegate.getDeviceSecret(deviceId));
+                        res.put("topics", createTopicJson(deviceId));
+                    } else {
+                        res.put("topics", createTopicJson(deviceId));
+                    }
+                } else {
                     res.put("error", "Unable to bootstrap device");
                 }
 
@@ -93,9 +98,9 @@ public class MQTTMessageHandler {
             try {
                 // alert listener of received data
                 int ix = topic.indexOf('/') + 1;
-                DevicePassport passport = delegate.getDevicePassport(topic.substring(ix, topic.indexOf('/', ix)));
-                if (passport != null) {
-                    delegate.onDeviceData(passport.getDeviceId(), createVariableUpdates(passport.getDeviceId(), json));
+                String deviceId = topic.substring(ix, topic.indexOf('/', ix));
+                if (delegate.hasDevice(deviceId)) {
+                    delegate.onDeviceData(deviceId, createVariableUpdates(deviceId, json));
                 } else {
                     logger.error("Received data from device with invalid bootstrap identifier");
                 }
@@ -105,11 +110,12 @@ public class MQTTMessageHandler {
         }
     }
 
-    protected Collection<VariableUpdate> createVariableUpdates(String deviceId, JSONObject json) {
-        List<VariableUpdate> updates = new ArrayList<>();
+    protected Collection<DeviceVariableState> createVariableUpdates(String deviceId, JSONObject json) {
+        long now = System.currentTimeMillis();
+        List<DeviceVariableState> updates = new ArrayList<>();
         for (Object o : json.keySet()) {
             String key = o.toString();
-            updates.add(new VariableUpdate(VariableContext.create(DeviceContext.create(ctx, deviceId), key), json.get(key)));
+            updates.add(new DeviceVariableState(DeviceVariableContext.create(ctx, deviceId, key), json.get(key), now));
         }
         return updates;
     }
