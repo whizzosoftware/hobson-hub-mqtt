@@ -11,7 +11,7 @@ package com.whizzosoftware.hobson.mqtt.device;
 
 import com.whizzosoftware.hobson.api.device.DeviceType;
 import com.whizzosoftware.hobson.api.device.HobsonDeviceDescriptor;
-import com.whizzosoftware.hobson.api.device.proxy.AbstractDeviceProxy;
+import com.whizzosoftware.hobson.api.device.proxy.AbstractHobsonDeviceProxy;
 import com.whizzosoftware.hobson.api.plugin.HobsonPlugin;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
@@ -19,7 +19,7 @@ import com.whizzosoftware.hobson.api.variable.*;
 
 import java.util.*;
 
-public class MQTTDevice extends AbstractDeviceProxy {
+public class MQTTDevice extends AbstractHobsonDeviceProxy {
     public static final String PROP_SECRET = "secret";
     public static final String PROP_ACTIVATED = "activated";
 
@@ -46,7 +46,7 @@ public class MQTTDevice extends AbstractDeviceProxy {
     }
 
     @Override
-    protected TypedProperty[] createConfigurationPropertyTypes() {
+    protected TypedProperty[] getConfigurationPropertyTypes() {
         return new TypedProperty[] {
             new TypedProperty.Builder(PROP_SECRET, "Device Secret", "The device secret", TypedProperty.Type.SECURE_STRING).build(),
             new TypedProperty.Builder(PROP_ACTIVATED, "Activated", "Indicates if the device has been activated", TypedProperty.Type.BOOLEAN).build()
@@ -105,7 +105,7 @@ public class MQTTDevice extends AbstractDeviceProxy {
     }
 
     @Override
-    public void onSetVariable(String variableName, Object value) {
+    public void onSetVariables(Map<String,Object> values) {
     }
 
     @Override

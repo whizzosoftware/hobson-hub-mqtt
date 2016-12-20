@@ -18,7 +18,7 @@ package io.moquette.spi.security;
 import javax.net.ssl.SSLContext;
 
 /**
- * SSL certificate loader used to open SSL connections (websocket and MQTT-S).
+ * SSL certificate loader used to open SSL connections (websockets and MQTT-S).
  *
  * Created by andrea on 13/12/15.
  */

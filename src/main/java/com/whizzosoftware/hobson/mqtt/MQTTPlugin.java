@@ -33,8 +33,6 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +54,6 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     private final static String PROP_BROKER_URL = "brokerUrl";
     private final static String DEFAULT_CLIENT_BROKER = "tcp://localhost:"  + DEFAULT_PORT;
 
-    private DB db;
     private Server server;
     private final MqttConnectOptions connOpts;
     private boolean embeddedBroker;
@@ -96,9 +93,6 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
             // get the client broker URL
             clientBrokerUrl = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_CLIENT_BROKER);
 
-            // create the internal device database
-            db = DBMaker.newFileDB(getDataFile("devices")).closeOnJvmShutdown().make();
-
             // restore any previously known devices
             restoreDevices();
 
@@ -122,7 +116,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     private void prepareBroker(String brokerUrl) throws IOException {
         embeddedBroker = brokerUrl.equals(DEFAULT_CLIENT_BROKER);
         if (embeddedBroker && server == null) {
-            logger.error("Starting embedded MQTT broker");
+            logger.info("Starting embedded MQTT broker");
             Properties mqttConfig = new Properties();
             mqttConfig.put(BrokerConstants.PERSISTENT_STORE_PROPERTY_NAME, getDataFile("moquette_store.mapdb").getAbsolutePath());
             mqttConfig.put(BrokerConstants.PORT, DEFAULT_PORT);
@@ -139,7 +133,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
                 logger.error("Unable to determine IP address; will not publish advertisements", e);
             }
         } else if (!embeddedBroker && server != null) {
-            logger.error("Stopping embedded MQTT broker");
+            logger.info("Stopping embedded MQTT broker");
             server.stopServer();
             server = null;
         }
@@ -151,10 +145,6 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
         if (server != null) {
             server.stopServer();
-        }
-
-        if (!db.isClosed()) {
-            db.close();
         }
     }
 
@@ -199,7 +189,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     public void onDeviceData(final String id, final Collection<DeviceVariableState> objects) {
         logger.trace("Received data from device " + id + ": " + objects);
 
-        HobsonDeviceProxy device = getProxyDevice(id);
+        HobsonDeviceProxy device = getDeviceProxy(id);
         if (device instanceof MQTTDevice) {
             ((MQTTDevice)device).onDeviceData(objects);
         } else {
@@ -294,7 +284,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         executeInEventLoop(new Runnable() {
             @Override
             public void run() {
-                HobsonDeviceProxy proxy = getProxyDevice(deviceId);
+                HobsonDeviceProxy proxy = getDeviceProxy(deviceId);
                 if (proxy instanceof MQTTDevice) {
                     ((MQTTDevice)proxy).onActivation(variables);
                     if (!embeddedBroker) {
