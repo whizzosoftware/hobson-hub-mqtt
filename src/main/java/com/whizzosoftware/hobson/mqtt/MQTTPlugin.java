@@ -14,8 +14,6 @@ import com.whizzosoftware.hobson.api.device.DeviceType;
 import com.whizzosoftware.hobson.api.device.HobsonDeviceDescriptor;
 import com.whizzosoftware.hobson.api.device.proxy.HobsonDeviceProxy;
 import com.whizzosoftware.hobson.api.disco.DeviceAdvertisement;
-import com.whizzosoftware.hobson.api.event.EventHandler;
-import com.whizzosoftware.hobson.api.event.plugin.PluginConfigurationUpdateEvent;
 import com.whizzosoftware.hobson.api.hub.NetworkInfo;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
@@ -167,20 +165,18 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         return 5; // the client connection watchdog will run every 5 seconds
     }
 
-    @EventHandler
-    public void onPluginConfigurationUpdate(PluginConfigurationUpdateEvent event) {
-        if (event.getPluginId().equals(getContext().getPluginId())) {
-            String s = event.getConfiguration().getStringPropertyValue(PROP_BROKER_URL, DEFAULT_CLIENT_BROKER);
-            if (!s.equals(clientBrokerUrl)) {
-                logger.debug("MQTT broker URL has changed");
-                embeddedBroker = s.equals(DEFAULT_CLIENT_BROKER);
-                clientBrokerUrl = s;
-                disconnect();
-                try {
-                    prepareBroker(s);
-                } catch (IOException e) {
-                    logger.error("Error starting MQTT broker", e);
-                }
+    @Override
+    public void onPluginConfigurationUpdate(PropertyContainer config) {
+        String s = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_CLIENT_BROKER);
+        if (!s.equals(clientBrokerUrl)) {
+            logger.debug("MQTT broker URL has changed");
+            embeddedBroker = s.equals(DEFAULT_CLIENT_BROKER);
+            clientBrokerUrl = s;
+            disconnect();
+            try {
+                prepareBroker(s);
+            } catch (IOException e) {
+                logger.error("Error starting MQTT broker", e);
             }
         }
     }
