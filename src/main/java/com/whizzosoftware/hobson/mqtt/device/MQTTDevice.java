@@ -13,7 +13,6 @@ import com.whizzosoftware.hobson.api.device.DeviceType;
 import com.whizzosoftware.hobson.api.device.HobsonDeviceDescriptor;
 import com.whizzosoftware.hobson.api.device.proxy.AbstractHobsonDeviceProxy;
 import com.whizzosoftware.hobson.api.plugin.HobsonPlugin;
-import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.*;
 
@@ -96,7 +95,7 @@ public class MQTTDevice extends AbstractHobsonDeviceProxy {
     }
 
     @Override
-    public void onDeviceConfigurationUpdate(PropertyContainer config) {
+    public void onDeviceConfigurationUpdate(Map<String,Object> config) {
 
     }
 
@@ -109,9 +108,9 @@ public class MQTTDevice extends AbstractHobsonDeviceProxy {
     }
 
     @Override
-    public void onStartup(String name, PropertyContainer config) {
+    public void onStartup(String name, Map<String,Object> config) {
         // make sure device has a secret configured
-        if (!config.hasPropertyValue(PROP_SECRET)) {
+        if (!config.containsKey(PROP_SECRET)) {
             setConfigurationProperty(PROP_SECRET, UUID.randomUUID().toString());
         }
 
