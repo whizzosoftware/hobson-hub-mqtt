@@ -4,7 +4,7 @@
     <groupId>com.whizzosoftware.hobson.hub</groupId>
     <artifactId>hobson-hub-mqtt</artifactId>
     <packaging>bundle</packaging>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
     <name>MQTT Plugin</name>
     <description>Provides the ability for devices to connect to the Hobson Hub via MQTT.</description>
     <dependencies>
