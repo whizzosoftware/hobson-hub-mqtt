@@ -15,12 +15,16 @@ import com.whizzosoftware.hobson.api.device.proxy.AbstractHobsonDeviceProxy;
 import com.whizzosoftware.hobson.api.plugin.HobsonPlugin;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class MQTTDevice extends AbstractHobsonDeviceProxy {
+    private final static Logger logger = LoggerFactory.getLogger(MQTTDevice.class);
+
     public static final String PROP_SECRET = "secret";
-    public static final String PROP_ACTIVATED = "activated";
+    private static final String PROP_ACTIVATED = "activated";
 
     private Map<String,MQTTDeviceVariable> variableMap = new HashMap<>();
 
@@ -110,8 +114,10 @@ public class MQTTDevice extends AbstractHobsonDeviceProxy {
     @Override
     public void onStartup(String name, Map<String,Object> config) {
         // make sure device has a secret configured
-        if (!config.containsKey(PROP_SECRET)) {
+        if (config == null || !config.containsKey(PROP_SECRET)) {
+            logger.debug("Device {} has no secret; generating a random one", getContext());
             setConfigurationProperty(PROP_SECRET, UUID.randomUUID().toString());
+            setConfigurationProperty(PROP_ACTIVATED, false);
         }
 
         // publish any appropriate variables
@@ -136,11 +142,11 @@ public class MQTTDevice extends AbstractHobsonDeviceProxy {
     }
 
     private class MQTTDeviceVariable {
-        public String name;
-        public VariableMask mask;
-        public Object initialValue;
+        String name;
+        VariableMask mask;
+        Object initialValue;
 
-        public MQTTDeviceVariable(String name, VariableMask mask, Object initialValue) {
+        MQTTDeviceVariable(String name, VariableMask mask, Object initialValue) {
             this.name = name;
             this.mask = mask;
             this.initialValue = initialValue;
