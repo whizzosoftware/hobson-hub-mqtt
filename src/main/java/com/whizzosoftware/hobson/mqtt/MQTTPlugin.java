@@ -35,6 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
@@ -50,6 +52,8 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     private final static int DEFAULT_PORT = 1883;
     private final static String PROP_BROKER_URL = "brokerUrl";
+    private final static String PROP_BROKER_USER = "brokerUser";
+    private final static String PROP_BROKER_PASSWORD = "brokerPassword";
     private final static String DEFAULT_CLIENT_BROKER = "tcp://localhost:"  + DEFAULT_PORT;
 
     private Server server;
@@ -68,17 +72,17 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
         handler = new MQTTMessageHandler(getContext(), this, this);
 
-        // create ephemeral admin credentials
-        clientAdminUser = UUID.randomUUID().toString();
-        clientAdminPassword = UUID.randomUUID().toString();
-
         // create MQTT connection options
         connOpts = new MqttConnectOptions();
         connOpts.setConnectionTimeout(10);
         connOpts.setCleanSession(true);
         connOpts.setKeepAliveInterval(30);
-        connOpts.setUserName(clientAdminUser);
-        connOpts.setPassword(clientAdminPassword.toCharArray());
+        if (clientAdminUser != null) {
+            connOpts.setUserName(clientAdminUser);
+        }
+        if (clientAdminPassword != null) {
+            connOpts.setPassword(clientAdminPassword.toCharArray());
+        }
     }
 
     // ***
@@ -89,13 +93,13 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     public void onStartup(PropertyContainer config) {
         try {
             // get the client broker URL
-            clientBrokerUrl = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_CLIENT_BROKER);
+            readConfiguration(config);
 
             // restore any previously known devices
             restoreDevices();
 
             // start the embedded broker if needed
-            prepareBroker(clientBrokerUrl);
+            prepareBroker();
 
             // perform client connection to embedded broker
             connect();
@@ -111,8 +115,7 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         }
     }
 
-    private void prepareBroker(String brokerUrl) throws IOException {
-        embeddedBroker = brokerUrl.equals(DEFAULT_CLIENT_BROKER);
+    private void prepareBroker() throws IOException {
         if (embeddedBroker && server == null) {
             logger.info("Starting embedded MQTT broker");
             Properties mqttConfig = new Properties();
@@ -151,7 +154,11 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         return new TypedProperty[] {
             new TypedProperty.Builder(PROP_BROKER_URL, "Broker URL", "The MQTT broker to connect to (defaults to tcp://localhost:1884).", TypedProperty.Type.STRING).
                 constraint(PropertyConstraintType.required, true).
-                build()
+                build(),
+            new TypedProperty.Builder(PROP_BROKER_USER, "Broker username", "The MQTT broker username (leave blank for none).", TypedProperty.Type.STRING).
+                    build(),
+            new TypedProperty.Builder(PROP_BROKER_PASSWORD, "Broker password", "The MQTT broker password (leave blank for none).", TypedProperty.Type.STRING).
+                    build()
         };
     }
 
@@ -167,14 +174,12 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
 
     @Override
     public void onPluginConfigurationUpdate(PropertyContainer config) {
-        String s = config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_CLIENT_BROKER);
-        if (!s.equals(clientBrokerUrl)) {
+        if (readConfiguration(config)) {
             logger.debug("MQTT broker URL has changed");
-            embeddedBroker = s.equals(DEFAULT_CLIENT_BROKER);
-            clientBrokerUrl = s;
+            embeddedBroker = clientBrokerUrl.equals(DEFAULT_CLIENT_BROKER);
             disconnect();
             try {
-                prepareBroker(s);
+                prepareBroker();
             } catch (IOException e) {
                 logger.error("Error starting MQTT broker", e);
             }
@@ -271,6 +276,57 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
         }
     }
 
+    private boolean readConfiguration(PropertyContainer config) {
+        String s = formatClientBrokerUrl(config.getStringPropertyValue(PROP_BROKER_URL, DEFAULT_CLIENT_BROKER));
+        boolean changed = ((clientBrokerUrl == null && s != null) || (clientBrokerUrl != null && !clientBrokerUrl.equals(s)));
+        clientBrokerUrl = s;
+        embeddedBroker = (clientBrokerUrl == null || clientBrokerUrl.equals(DEFAULT_CLIENT_BROKER));
+
+        if (config.hasPropertyValue(PROP_BROKER_USER)) {
+            s = config.getStringPropertyValue(PROP_BROKER_USER);
+            changed = changed || ((clientAdminPassword == null && s != null) || (clientAdminPassword != null && !clientAdminPassword.equals(s)));
+            clientAdminPassword = s;
+        } else if (embeddedBroker) {
+            clientAdminUser = UUID.randomUUID().toString();
+        }
+
+        if (config.hasPropertyValue(PROP_BROKER_PASSWORD)) {
+            s = config.getStringPropertyValue(PROP_BROKER_PASSWORD);
+            changed = changed || ((clientAdminPassword == null && s != null) || (clientAdminPassword != null && !clientAdminPassword.equals(s)));
+            clientAdminPassword = s;
+        } else if (embeddedBroker) {
+            clientAdminPassword = UUID.randomUUID().toString();
+        }
+
+        return changed;
+    }
+
+    String formatClientBrokerUrl(String s) {
+        String url = null;
+        if (s != null) {
+            try {
+                if (!s.contains("://")) {
+                    s = "tcp://" + s;
+                }
+                URI u = new URI(s);
+                url = u.getScheme() + "://";
+                if (u.getHost() != null) {
+                    url += u.getHost();
+                } else {
+                    url += s;
+                }
+                if (u.getPort() > 0) {
+                    url += ":" + u.getPort();
+                } else {
+                    url += ":" + DEFAULT_PORT;
+                }
+            } catch (URISyntaxException e) {
+                url = s;
+            }
+        }
+        return url;
+    }
+
     // ***
     // MQTTEventDelegate methods
     // ***
@@ -324,10 +380,12 @@ public class MQTTPlugin extends AbstractHobsonPlugin implements MqttCallback, MQ
     private void connect() {
         try {
             if (mqtt == null) {
+                logger.debug("Attempting external broker connection to {} with user {}", clientBrokerUrl, connOpts.getUserName());
                 mqtt = new MqttAsyncClient(clientBrokerUrl, "Hobson Hub", new MemoryPersistence());
                 mqtt.setCallback(this);
+            } else {
+                logger.debug("Attempting embedded broker connection to {} with user {}", clientBrokerUrl, connOpts.getUserName());
             }
-            logger.debug("Attempting broker connection to {} with user {}", clientBrokerUrl, connOpts.getUserName());
             isConnectPending = true;
             mqtt.connect(connOpts, "", new IMqttActionListener() {
                 @Override
