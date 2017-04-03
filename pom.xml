@@ -177,4 +177,7 @@
             <url>https://api.bintray.com/maven/whizzosoftware/maven/hobson-hub-mqtt</url>
         </repository>
     </distributionManagement>
+    <properties>
+       <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
+    </properties>
 </project>
